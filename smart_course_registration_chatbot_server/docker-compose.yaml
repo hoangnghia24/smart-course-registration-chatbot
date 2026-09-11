@@ -1,0 +1,44 @@
+services:
+  # Development services
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "8090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: smart_course_registration_chatbot
+      POSTGRES_PASSWORD: "jK6KyPAwmcP4u4mS3l8bZoTO8J5BeMr8"
+    volumes:
+      - smart_course_registration_chatbot_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:6.2.6
+    ports:
+      - "8091:6379"
+    command: redis-server --requirepass "dKJYQJ_1AVlqmOpME5DnBkv1sDsU-ytH"
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+  # Test services
+  postgres_test:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "9090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: smart_course_registration_chatbot_test
+      POSTGRES_PASSWORD: "llNr1YiiNuK0mTRzd0LOxYMAQtbArths"
+    volumes:
+      - smart_course_registration_chatbot_test_data:/var/lib/postgresql/data
+
+  redis_test:
+    image: redis:6.2.6
+    ports:
+      - "9091:6379"
+    command: redis-server --requirepass "ZBiiS8g8u2-xQ8pXtXAvohDlHuuV1nDt"
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+volumes:
+  smart_course_registration_chatbot_data:
+  smart_course_registration_chatbot_test_data:

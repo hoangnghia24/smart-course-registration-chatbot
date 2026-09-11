@@ -1,0 +1,11 @@
+name: _
+publish_to: none
+
+environment:
+  sdk: '^3.8.0'
+
+workspace:
+  - smart_course_registration_chatbot_client
+  - smart_course_registration_chatbot_server
+  - smart_course_registration_chatbot_flutter
+

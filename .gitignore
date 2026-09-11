@@ -1,0 +1,24 @@
+# Dart / Pub
+.dart_tool/
+.packages
+pubspec_overrides.yaml
+
+# Build artifacts
+build/
+coverage/
+
+# Serverpod secrets
+**/config/passwords.yaml
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
