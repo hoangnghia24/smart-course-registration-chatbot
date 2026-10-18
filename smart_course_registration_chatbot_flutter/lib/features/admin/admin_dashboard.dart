@@ -5,7 +5,9 @@ import '../../core/widgets/dashboard_widgets.dart';
 import '../../data/mock/mock_dashboard_data.dart';
 
 class AdminDashboard extends StatelessWidget {
-  const AdminDashboard({super.key});
+  const AdminDashboard({super.key, this.onSignOut});
+
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -16,6 +18,7 @@ class AdminDashboard extends StatelessWidget {
         name: data.name,
         subtitle: data.organization,
         avatarIcon: Icons.admin_panel_settings_outlined,
+        onSignOut: onSignOut,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

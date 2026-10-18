@@ -9,12 +9,14 @@ class DashboardHeader extends StatelessWidget {
     required this.name,
     required this.subtitle,
     required this.avatarIcon,
+    this.onSignOut,
   });
 
   final String role;
   final String name;
   final String subtitle;
   final IconData avatarIcon;
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +84,13 @@ class DashboardHeader extends StatelessWidget {
               color: Colors.white,
             ),
           ),
+          if (onSignOut != null)
+            IconButton(
+              key: const ValueKey('dashboard-sign-out'),
+              tooltip: 'Đăng xuất demo',
+              onPressed: onSignOut,
+              icon: const Icon(Icons.logout_rounded, color: Colors.white),
+            ),
         ],
       ),
     );

@@ -5,7 +5,9 @@ import '../../core/widgets/dashboard_widgets.dart';
 import '../../data/mock/mock_dashboard_data.dart';
 
 class StudentDashboard extends StatelessWidget {
-  const StudentDashboard({super.key});
+  const StudentDashboard({super.key, this.onSignOut});
+
+  final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -16,6 +18,7 @@ class StudentDashboard extends StatelessWidget {
         name: data.name,
         subtitle: data.semester,
         avatarIcon: Icons.person_outline_rounded,
+        onSignOut: onSignOut,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
