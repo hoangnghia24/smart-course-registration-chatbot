@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_course_registration_chatbot_flutter/dev/week5_login_demo.dart';
 
-void _setPhoneSurface(WidgetTester tester) {
-  tester.view.physicalSize = const Size(390, 844);
+void _setPhoneSurface(
+  WidgetTester tester, {
+  Size size = const Size(390, 844),
+}) {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
-Future<void> _pumpLoginDemo(WidgetTester tester) async {
-  _setPhoneSurface(tester);
+Future<void> _pumpLoginDemo(
+  WidgetTester tester, {
+  Size size = const Size(390, 844),
+}) async {
+  _setPhoneSurface(tester, size: size);
   await tester.pumpWidget(const Week5LoginDemoApp());
   await tester.pumpAndSettle();
 }
@@ -135,6 +141,37 @@ void main() {
     tester,
   ) async {
     await _pumpLoginDemo(tester);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Login demo fits 360x740 and footer is reachable by scrolling', (
+    tester,
+  ) async {
+    await _pumpLoginDemo(tester, size: const Size(360, 740));
+    expect(tester.takeException(), isNull);
+
+    final scrollable = find.byType(Scrollable).first;
+    await tester.fling(scrollable, const Offset(0, -500), 1000);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      greaterThan(0),
+    );
+    expect(find.textContaining('2026'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Login demo remains stable while the password field is focused', (
+    tester,
+  ) async {
+    await _pumpLoginDemo(tester, size: const Size(360, 740));
+    final passwordField = find.byKey(const ValueKey('login-password'));
+
+    await tester.tap(passwordField);
+    await tester.showKeyboard(passwordField);
+    await tester.pump();
+
     expect(tester.takeException(), isNull);
   });
 }
