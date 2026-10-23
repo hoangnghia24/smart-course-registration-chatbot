@@ -8,6 +8,7 @@ import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/root.dart';
+import 'src/web/app_health_route.dart';
 
 /// The starting point of the Serverpod server.
 void run(List<String> args) async {
@@ -72,7 +73,10 @@ void run(List<String> args) async {
       '/app/**',
     );
   }
-
+  pod.webServer.addRoute(
+    AppHealthRoute(),
+    '/health',
+  );
   // Start the server.
   await pod.start();
 }
