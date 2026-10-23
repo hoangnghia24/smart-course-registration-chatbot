@@ -1,15 +1,28 @@
+
 services:
   # Development services
   postgres:
     image: pgvector/pgvector:pg16
+    restart: unless-stopped
+
     ports:
-      - "8090:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-8090}:5432"
+
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: smart_course_registration_chatbot
-      POSTGRES_PASSWORD: "jK6KyPAwmcP4u4mS3l8bZoTO8J5BeMr8"
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+
     volumes:
       - smart_course_registration_chatbot_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 3s
+      retries: 12
 
   redis:
     image: redis:6.2.6
