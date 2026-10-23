@@ -13,6 +13,9 @@ jobs:
       VERSION: '3.4.13'
       SERVERPOD_PASSWORD_database: 'llNr1YiiNuK0mTRzd0LOxYMAQtbArths'
       SERVERPOD_PASSWORD_redis: 'ZBiiS8g8u2-xQ8pXtXAvohDlHuuV1nDt'
+      POSTGRES_DB: smart-course-registration-chatbot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ci-only-postgres-password
 
     steps:
       - uses: actions/checkout@v4
