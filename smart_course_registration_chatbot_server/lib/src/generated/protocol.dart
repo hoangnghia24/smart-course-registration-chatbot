@@ -17,8 +17,34 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'greetings/greeting.dart' as _i5;
+import 'account_role.dart' as _i5;
+import 'account_status.dart' as _i6;
+import 'app_exception.dart' as _i7;
+import 'audit_log.dart' as _i8;
+import 'course.dart' as _i9;
+import 'course_item_dto.dart' as _i10;
+import 'current_user_dto.dart' as _i11;
+import 'curriculum.dart' as _i12;
+import 'curriculum_version.dart' as _i13;
+import 'greetings/greeting.dart' as _i14;
+import 'lecturer.dart' as _i15;
+import 'lecturer_status.dart' as _i16;
+import 'student.dart' as _i17;
+import 'user_account.dart' as _i18;
+export 'account_role.dart';
+export 'account_status.dart';
+export 'app_exception.dart';
+export 'audit_log.dart';
+export 'course.dart';
+export 'course_item_dto.dart';
+export 'current_user_dto.dart';
+export 'curriculum.dart';
+export 'curriculum_version.dart';
 export 'greetings/greeting.dart';
+export 'lecturer.dart';
+export 'lecturer_status.dart';
+export 'student.dart';
+export 'user_account.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
   Protocol._();
@@ -28,6 +54,607 @@ class Protocol extends _i1.SerializationManagerServer {
   static final Protocol _instance = Protocol._();
 
   static final List<_i2.TableDefinition> targetTableDefinitions = [
+    _i2.TableDefinition(
+      name: 'app_audit_log',
+      dartName: 'AuditLog',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_audit_log_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'actorUserAccountId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'targetUserAccountId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'action',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'details',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_audit_log_fk_0',
+          columns: ['actorUserAccountId'],
+          referenceTable: 'app_user_account',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_audit_log_fk_1',
+          columns: ['targetUserAccountId'],
+          referenceTable: 'app_user_account',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_audit_log_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_course',
+      dartName: 'Course',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_course_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'code',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'name',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'credits',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'description',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'isActive',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_course_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_course_code_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'code',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_curriculum',
+      dartName: 'Curriculum',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_curriculum_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'code',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'name',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'majorCode',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'status',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_curriculum_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_curriculum_code_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'code',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_curriculum_version',
+      dartName: 'CurriculumVersion',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_curriculum_version_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'curriculumId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'versionCode',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'effectiveYear',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'status',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_curriculum_version_fk_0',
+          columns: ['curriculumId'],
+          referenceTable: 'app_curriculum',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_curriculum_version_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_curriculum_version_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'curriculumId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'versionCode',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_lecturer',
+      dartName: 'Lecturer',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_lecturer_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'userAccountId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'lecturerCode',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'teachingStatus',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:LecturerStatus',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_lecturer_fk_0',
+          columns: ['userAccountId'],
+          referenceTable: 'app_user_account',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_lecturer_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_lecturer_account_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'userAccountId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_lecturer_code_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'lecturerCode',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_student',
+      dartName: 'Student',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_student_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'userAccountId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'studentCode',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'curriculumVersionId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'academicStatus',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_student_fk_0',
+          columns: ['userAccountId'],
+          referenceTable: 'app_user_account',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_student_fk_1',
+          columns: ['curriculumVersionId'],
+          referenceTable: 'app_curriculum_version',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_student_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_student_account_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'userAccountId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_student_code_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'studentCode',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_user_account',
+      dartName: 'UserAccount',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_user_account_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'authUserId',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'schoolEmail',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'role',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:AccountRole',
+        ),
+        _i2.ColumnDefinition(
+          name: 'status',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:AccountStatus',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'updatedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'statusChangedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_user_account_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_user_account_auth_user_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'authUserId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_user_account_email_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'schoolEmail',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
     ..._i3.Protocol.targetTableDefinitions,
     ..._i4.Protocol.targetTableDefinitions,
     ..._i2.Protocol.targetTableDefinitions,
@@ -60,11 +687,89 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
 
-    if (t == _i5.Greeting) {
-      return _i5.Greeting.fromJson(data) as T;
+    if (t == _i5.AccountRole) {
+      return _i5.AccountRole.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i5.Greeting?>()) {
-      return (data != null ? _i5.Greeting.fromJson(data) : null) as T;
+    if (t == _i6.AccountStatus) {
+      return _i6.AccountStatus.fromJson(data) as T;
+    }
+    if (t == _i7.AppException) {
+      return _i7.AppException.fromJson(data) as T;
+    }
+    if (t == _i8.AuditLog) {
+      return _i8.AuditLog.fromJson(data) as T;
+    }
+    if (t == _i9.Course) {
+      return _i9.Course.fromJson(data) as T;
+    }
+    if (t == _i10.CourseItemDto) {
+      return _i10.CourseItemDto.fromJson(data) as T;
+    }
+    if (t == _i11.CurrentUserDto) {
+      return _i11.CurrentUserDto.fromJson(data) as T;
+    }
+    if (t == _i12.Curriculum) {
+      return _i12.Curriculum.fromJson(data) as T;
+    }
+    if (t == _i13.CurriculumVersion) {
+      return _i13.CurriculumVersion.fromJson(data) as T;
+    }
+    if (t == _i14.Greeting) {
+      return _i14.Greeting.fromJson(data) as T;
+    }
+    if (t == _i15.Lecturer) {
+      return _i15.Lecturer.fromJson(data) as T;
+    }
+    if (t == _i16.LecturerStatus) {
+      return _i16.LecturerStatus.fromJson(data) as T;
+    }
+    if (t == _i17.Student) {
+      return _i17.Student.fromJson(data) as T;
+    }
+    if (t == _i18.UserAccount) {
+      return _i18.UserAccount.fromJson(data) as T;
+    }
+    if (t == _i1.getType<_i5.AccountRole?>()) {
+      return (data != null ? _i5.AccountRole.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i6.AccountStatus?>()) {
+      return (data != null ? _i6.AccountStatus.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i7.AppException?>()) {
+      return (data != null ? _i7.AppException.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i8.AuditLog?>()) {
+      return (data != null ? _i8.AuditLog.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i9.Course?>()) {
+      return (data != null ? _i9.Course.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i10.CourseItemDto?>()) {
+      return (data != null ? _i10.CourseItemDto.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i11.CurrentUserDto?>()) {
+      return (data != null ? _i11.CurrentUserDto.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i12.Curriculum?>()) {
+      return (data != null ? _i12.Curriculum.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i13.CurriculumVersion?>()) {
+      return (data != null ? _i13.CurriculumVersion.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i14.Greeting?>()) {
+      return (data != null ? _i14.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i15.Lecturer?>()) {
+      return (data != null ? _i15.Lecturer.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i16.LecturerStatus?>()) {
+      return (data != null ? _i16.LecturerStatus.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i17.Student?>()) {
+      return (data != null ? _i17.Student.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i18.UserAccount?>()) {
+      return (data != null ? _i18.UserAccount.fromJson(data) : null) as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -80,7 +785,20 @@ class Protocol extends _i1.SerializationManagerServer {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i5.Greeting => 'Greeting',
+      _i5.AccountRole => 'AccountRole',
+      _i6.AccountStatus => 'AccountStatus',
+      _i7.AppException => 'AppException',
+      _i8.AuditLog => 'AuditLog',
+      _i9.Course => 'Course',
+      _i10.CourseItemDto => 'CourseItemDto',
+      _i11.CurrentUserDto => 'CurrentUserDto',
+      _i12.Curriculum => 'Curriculum',
+      _i13.CurriculumVersion => 'CurriculumVersion',
+      _i14.Greeting => 'Greeting',
+      _i15.Lecturer => 'Lecturer',
+      _i16.LecturerStatus => 'LecturerStatus',
+      _i17.Student => 'Student',
+      _i18.UserAccount => 'UserAccount',
       _ => null,
     };
   }
@@ -98,8 +816,34 @@ class Protocol extends _i1.SerializationManagerServer {
     }
 
     switch (data) {
-      case _i5.Greeting():
+      case _i5.AccountRole():
+        return 'AccountRole';
+      case _i6.AccountStatus():
+        return 'AccountStatus';
+      case _i7.AppException():
+        return 'AppException';
+      case _i8.AuditLog():
+        return 'AuditLog';
+      case _i9.Course():
+        return 'Course';
+      case _i10.CourseItemDto():
+        return 'CourseItemDto';
+      case _i11.CurrentUserDto():
+        return 'CurrentUserDto';
+      case _i12.Curriculum():
+        return 'Curriculum';
+      case _i13.CurriculumVersion():
+        return 'CurriculumVersion';
+      case _i14.Greeting():
         return 'Greeting';
+      case _i15.Lecturer():
+        return 'Lecturer';
+      case _i16.LecturerStatus():
+        return 'LecturerStatus';
+      case _i17.Student():
+        return 'Student';
+      case _i18.UserAccount():
+        return 'UserAccount';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -122,8 +866,47 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'AccountRole') {
+      return deserialize<_i5.AccountRole>(data['data']);
+    }
+    if (dataClassName == 'AccountStatus') {
+      return deserialize<_i6.AccountStatus>(data['data']);
+    }
+    if (dataClassName == 'AppException') {
+      return deserialize<_i7.AppException>(data['data']);
+    }
+    if (dataClassName == 'AuditLog') {
+      return deserialize<_i8.AuditLog>(data['data']);
+    }
+    if (dataClassName == 'Course') {
+      return deserialize<_i9.Course>(data['data']);
+    }
+    if (dataClassName == 'CourseItemDto') {
+      return deserialize<_i10.CourseItemDto>(data['data']);
+    }
+    if (dataClassName == 'CurrentUserDto') {
+      return deserialize<_i11.CurrentUserDto>(data['data']);
+    }
+    if (dataClassName == 'Curriculum') {
+      return deserialize<_i12.Curriculum>(data['data']);
+    }
+    if (dataClassName == 'CurriculumVersion') {
+      return deserialize<_i13.CurriculumVersion>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i5.Greeting>(data['data']);
+      return deserialize<_i14.Greeting>(data['data']);
+    }
+    if (dataClassName == 'Lecturer') {
+      return deserialize<_i15.Lecturer>(data['data']);
+    }
+    if (dataClassName == 'LecturerStatus') {
+      return deserialize<_i16.LecturerStatus>(data['data']);
+    }
+    if (dataClassName == 'Student') {
+      return deserialize<_i17.Student>(data['data']);
+    }
+    if (dataClassName == 'UserAccount') {
+      return deserialize<_i18.UserAccount>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -159,6 +942,22 @@ class Protocol extends _i1.SerializationManagerServer {
       if (table != null) {
         return table;
       }
+    }
+    switch (t) {
+      case _i8.AuditLog:
+        return _i8.AuditLog.t;
+      case _i9.Course:
+        return _i9.Course.t;
+      case _i12.Curriculum:
+        return _i12.Curriculum.t;
+      case _i13.CurriculumVersion:
+        return _i13.CurriculumVersion.t;
+      case _i15.Lecturer:
+        return _i15.Lecturer.t;
+      case _i17.Student:
+        return _i17.Student.t;
+      case _i18.UserAccount:
+        return _i18.UserAccount.t;
     }
     return null;
   }

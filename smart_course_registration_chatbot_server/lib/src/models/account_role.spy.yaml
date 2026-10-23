@@ -1,0 +1,6 @@
+enum: AccountRole
+serialized: byName
+values:
+  - student
+  - lecturer
+  - admin

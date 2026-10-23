@@ -1,0 +1,15 @@
+class: Course
+table: app_course
+serverOnly: true
+
+fields:
+  code: String
+  name: String
+  credits: int
+  description: String?
+  isActive: bool
+
+indexes:
+  app_course_code_unique:
+    fields: code
+    unique: true

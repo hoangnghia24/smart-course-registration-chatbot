@@ -1,0 +1,5 @@
+enum: AccountStatus
+serialized: byName
+values:
+  - active
+  - inactive

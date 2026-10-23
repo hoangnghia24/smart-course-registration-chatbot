@@ -1,0 +1,14 @@
+class: Curriculum
+table: app_curriculum
+serverOnly: true
+
+fields:
+  code: String
+  name: String
+  majorCode: String
+  status: String
+
+indexes:
+  app_curriculum_code_unique:
+    fields: code
+    unique: true

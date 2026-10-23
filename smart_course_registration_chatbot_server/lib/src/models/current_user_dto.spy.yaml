@@ -1,0 +1,7 @@
+class: CurrentUserDto
+fields:
+  accountId: int
+  role: AccountRole
+  status: AccountStatus
+  studentCode: String?
+  lecturerCode: String?

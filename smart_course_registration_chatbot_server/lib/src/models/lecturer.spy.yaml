@@ -1,0 +1,17 @@
+class: Lecturer
+table: app_lecturer
+serverOnly: true
+
+fields:
+  userAccountId: int, relation(parent=app_user_account)
+  lecturerCode: String
+  teachingStatus: LecturerStatus
+
+indexes:
+  app_lecturer_account_unique:
+    fields: userAccountId
+    unique: true
+
+  app_lecturer_code_unique:
+    fields: lecturerCode
+    unique: true

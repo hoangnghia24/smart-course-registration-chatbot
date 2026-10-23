@@ -1,0 +1,6 @@
+class: CourseItemDto
+fields:
+  code: String
+  name: String
+  credits: int
+  description: String?

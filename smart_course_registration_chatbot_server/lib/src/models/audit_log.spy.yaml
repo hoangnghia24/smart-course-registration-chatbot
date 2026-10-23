@@ -1,0 +1,10 @@
+class: AuditLog
+table: app_audit_log
+serverOnly: true
+
+fields:
+  actorUserAccountId: int, relation(parent=app_user_account)
+  targetUserAccountId: int?, relation(parent=app_user_account)
+  action: String
+  createdAt: DateTime
+  details: String?

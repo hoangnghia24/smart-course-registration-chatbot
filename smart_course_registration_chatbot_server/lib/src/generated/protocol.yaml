@@ -1,3 +1,9 @@
+account:
+  - me:
+  - logoutAll:
+adminAccount:
+  - checkAccess:
+  - setActive:
 emailIdp:
   - login:
   - startRegistration:
@@ -6,6 +12,9 @@ emailIdp:
   - startPasswordReset:
   - verifyPasswordResetCode:
   - finishPasswordReset:
+  - hasAccount:
+googleIdp:
+  - login:
   - hasAccount:
 jwtRefresh:
   - refreshAccessToken:

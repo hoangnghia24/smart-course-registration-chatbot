@@ -1,0 +1,8 @@
+enum: LecturerStatus
+serialized: byName
+values:
+  - active          # Đang công tác / Đang giảng dạy
+  - onLeave         # Tạm nghỉ (Nghỉ thai sản, nghỉ phép dài hạn, đi học nâng cao)
+  - suspended       # Tạm đình chỉ công tác
+  - resigned        # Đã nghỉ việc / Thôi việc
+  - retired         # Đã nghỉ hưu

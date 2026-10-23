@@ -1,0 +1,18 @@
+class: Student
+table: app_student
+serverOnly: true
+
+fields:
+  userAccountId: int, relation(parent=app_user_account)
+  studentCode: String
+  curriculumVersionId: int, relation(parent=app_curriculum_version)
+  academicStatus: String
+
+indexes:
+  app_student_account_unique:
+    fields: userAccountId
+    unique: true
+
+  app_student_code_unique:
+    fields: studentCode
+    unique: true

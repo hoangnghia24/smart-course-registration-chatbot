@@ -1,0 +1,14 @@
+class: CurriculumVersion
+table: app_curriculum_version
+serverOnly: true
+
+fields:
+  curriculumId: int, relation(parent=app_curriculum)
+  versionCode: String
+  effectiveYear: int
+  status: String
+
+indexes:
+  app_curriculum_version_unique:
+    fields: curriculumId, versionCode
+    unique: true

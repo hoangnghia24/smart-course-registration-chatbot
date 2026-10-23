@@ -1,0 +1,21 @@
+class: UserAccount
+table: app_user_account
+serverOnly: true
+
+fields:
+  authUserId: String
+  schoolEmail: String
+  role: AccountRole
+  status: AccountStatus
+  createdAt: DateTime
+  updatedAt: DateTime
+  statusChangedAt: DateTime?
+
+indexes:
+  app_user_account_auth_user_unique:
+    fields: authUserId
+    unique: true
+
+  app_user_account_email_unique:
+    fields: schoolEmail
+    unique: true
