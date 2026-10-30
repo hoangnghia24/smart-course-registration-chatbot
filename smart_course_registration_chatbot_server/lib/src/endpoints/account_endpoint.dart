@@ -11,7 +11,7 @@ class AccountEndpoint extends Endpoint {
 
   /// Lấy thông tin người dùng từ session.
   Future<CurrentUserDto> me(Session session) async {
-    final account = await AccountGuard.require(session);
+    final account = await AccountGuard.requireAuthenticatedAccount(session);
 
     String? studentCode;
     String? lecturerCode;
@@ -46,7 +46,7 @@ class AccountEndpoint extends Endpoint {
   }
   /// Đăng xuất tài khoản khỏi tất cả các thiết bị.
 Future<bool> logoutAll(Session session) async {
-  await AccountGuard.require(session);
+  await AccountGuard.requireAuthenticatedAccount(session);
 
   final authUserId = session.authenticated?.authUserId;
 

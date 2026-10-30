@@ -1,4 +1,6 @@
+
 import 'package:serverpod/serverpod.dart';
+
 import '../generated/protocol.dart';
 import '../security/account_guard.dart';
 
@@ -6,37 +8,78 @@ class StudentEndpoint extends Endpoint {
   @override
   bool get requireLogin => true;
 
-  Future<CurriculumDetailsDto?> getMyCurriculum(Session session) async {
-    // 1. Lấy thông tin UserAccount đang đăng nhập (Sử dụng AccountGuard chuẩn của dự án)
-    final userAccount = await AccountGuard.require(session);
-
-    // 2. Lấy thông tin Student để biết curriculumVersionId
-    var student = await Student.db.findFirstRow(
+  Future<CurriculumDetailsDto?> getMyCurriculum(
+    Session session,
+  ) async {
+    // 1. Xác thực và kiểm tra quyền Student
+    final account = await AccountGuard.requireRole(
       session,
-      where: (t) => t.userAccountId.equals(userAccount.id!),
+      allowedRoles: {AccountRole.student},
     );
+
+    // 2. Tìm hồ sơ sinh viên đang đăng nhập
+    final student = await Student.db.findFirstRow(
+      session,
+      where: (t) => t.userAccountId.equals(account.id!),
+    );
+
     if (student == null) return null;
 
-    // 3. Lấy thông tin chi tiết khung chương trình
-    var version = await CurriculumVersion.db.findById(session, student.curriculumVersionId);
+    // 3. Lấy phiên bản chương trình đào tạo
+    final version = await CurriculumVersion.db.findById(
+      session,
+      student.curriculumVersionId,
+    );
+
     if (version == null) return null;
 
-    var curriculum = await Curriculum.db.findById(session, version.curriculumId);
+    // 4. Lấy chương trình đào tạo
+    final curriculum = await Curriculum.db.findById(
+      session,
+      version.curriculumId,
+    );
+
     if (curriculum == null) return null;
 
-    // 4. Lấy danh sách các môn học trong khung
-    var items = await CurriculumItem.db.find(
+    // 5. Lấy các môn trong phiên bản CTĐT
+    final items = await CurriculumItem.db.find(
       session,
-      where: (t) => t.curriculumVersionId.equals(version.id!),
+      where: (t) => t.curriculumVersionId.equals(
+        student.curriculumVersionId,
+      ),
       orderBy: (t) => t.semester,
     );
 
-    var itemDetails = <CurriculumItemDetailDto>[];
-    for (var item in items) {
-      var course = await Course.db.findById(session, item.courseId);
-      if (course != null) {
-        // Chuyển đổi từ Course (Server Entity) sang CourseItemDto (Shared DTO)
-        itemDetails.add(CurriculumItemDetailDto(
+    // 6. Tập hợp ID các môn học, loại trùng
+    final courseIds = items
+        .map((item) => item.courseId)
+        .toSet();
+
+    // 7. Lấy nhiều Course trong một truy vấn
+    final courses = courseIds.isEmpty
+        ? <Course>[]
+        : await Course.db.find(
+            session,
+            where: (t) => t.id.inSet(courseIds),
+          );
+
+    // 8. Tạo Map để tra cứu nhanh theo ID
+    final courseById = <int, Course>{
+      for (final course in courses)
+        if (course.id != null) course.id!: course,
+    };
+
+    // 9. Ánh xạ dữ liệu sang DTO
+    final itemDetails = <CurriculumItemDetailDto>[];
+
+    for (final item in items) {
+      final course = courseById[item.courseId];
+
+      // Giữ hành vi code cũ nếu thiếu Course
+      if (course == null) continue;
+
+      itemDetails.add(
+        CurriculumItemDetailDto(
           course: CourseItemDto(
             code: course.code,
             name: course.name,
@@ -45,11 +88,11 @@ class StudentEndpoint extends Endpoint {
           ),
           semester: item.semester,
           isRequired: item.isRequired,
-        ));
-      }
+        ),
+      );
     }
 
-    // 5. Trả về DTO tổng hợp đã map dữ liệu
+    // 10. Trả kết quả về Flutter
     return CurriculumDetailsDto(
       curriculum: CurriculumDto(
         code: curriculum.code,
