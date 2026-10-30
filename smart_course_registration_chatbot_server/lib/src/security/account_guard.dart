@@ -1,13 +1,15 @@
+
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 
+/// Kiểm tra tài khoản và phân quyền trong hệ thống.
 class AccountGuard {
-  static Future<UserAccount> require(
-    Session session, {
-    Set<AccountRole> allowedRoles = const {},
-  }) async {
-    // Lấy AuthUser ID từ token.
-    final authUserId = session.authenticated?.userIdentifier;
+  static Future<UserAccount> requireAuthenticatedAccount(
+    Session session,
+  ) async {
+    // Lấy danh tính từ session đã được Serverpod xác thực.
+    final authUserId =
+        session.authenticated?.userIdentifier;
 
     if (authUserId == null || authUserId.isEmpty) {
       throw AppException(
@@ -29,17 +31,37 @@ class AccountGuard {
       );
     }
 
-    // Kiểm tra trạng thái tài khoản.
+    // Kiểm tra tài khoản còn hoạt động.
     if (account.status != AccountStatus.active) {
       throw AppException(
         code: 'ACCOUNT_INACTIVE',
-        message: 'Tài khoản đã bị khóa hoặc chưa được kích hoạt.',
+        message: 'Tài khoản chưa được kích hoạt.',
       );
     }
 
-    // Kiểm tra quyền nếu API yêu cầu vai trò cụ thể.
-    if (allowedRoles.isNotEmpty &&
-        !allowedRoles.contains(account.role)) {
+    return account;
+  }
+
+  /// 2. Xác thực và kiểm tra vai trò.
+  static Future<UserAccount> requireRole(
+    Session session, {
+    required Set<AccountRole> allowedRoles,
+  }) async {
+    // Kiểm tra tham số đầu vào.
+    if (allowedRoles.isEmpty) {
+      throw ArgumentError.value(
+        allowedRoles,
+        'allowedRoles',
+        'Phải khai báo ít nhất một vai trò.',
+      );
+    }
+
+    // Dùng lại logic xác thực, không truy vấn trùng.
+    final account =
+        await requireAuthenticatedAccount(session);
+
+    // Kiểm tra vai trò người dùng.
+    if (!allowedRoles.contains(account.role)) {
       throw AppException(
         code: 'FORBIDDEN',
         message: 'Bạn không có quyền truy cập.',

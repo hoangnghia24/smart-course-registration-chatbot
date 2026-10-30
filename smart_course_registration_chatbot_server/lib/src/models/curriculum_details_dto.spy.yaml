@@ -1,0 +1,5 @@
+class: CurriculumDetailsDto
+fields:
+  curriculum: CurriculumDto
+  version: CurriculumVersionDto
+  items: List<CurriculumItemDetailDto>

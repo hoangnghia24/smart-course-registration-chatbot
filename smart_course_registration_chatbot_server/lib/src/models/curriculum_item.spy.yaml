@@ -1,0 +1,14 @@
+class: CurriculumItem
+table: app_curriculum_item
+serverOnly: true
+
+fields:
+  curriculumVersionId: int, relation(parent=app_curriculum_version)
+  courseId: int, relation(parent=app_course)
+  semester: int
+  isRequired: bool
+
+indexes:
+  app_curriculum_item_unique:
+    fields: curriculumVersionId, courseId
+    unique: true

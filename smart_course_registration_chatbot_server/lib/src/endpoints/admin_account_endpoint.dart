@@ -13,7 +13,7 @@ class AdminAccountEndpoint extends Endpoint {
 
   /// Kiểm tra quyền truy cập Admin.
   Future<String> checkAccess(Session session) async {
-    await AccountGuard.require(
+    await AccountGuard.requireRole(
       session,
       allowedRoles: {AccountRole.admin},
     );
@@ -31,7 +31,7 @@ class AdminAccountEndpoint extends Endpoint {
     bool active,
   ) async {
     // 1. Kiểm tra người gọi có quyền Admin.
-    final actor = await AccountGuard.require(
+    final actor = await AccountGuard.requireRole(
       session,
       allowedRoles: {AccountRole.admin},
     );

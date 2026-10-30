@@ -19,9 +19,11 @@ import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _i4;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i5;
-import 'package:smart_course_registration_chatbot_client/src/protocol/greetings/greeting.dart'
+import 'package:smart_course_registration_chatbot_client/src/protocol/curriculum_details_dto.dart'
     as _i6;
-import 'protocol.dart' as _i7;
+import 'package:smart_course_registration_chatbot_client/src/protocol/greetings/greeting.dart'
+    as _i7;
+import 'protocol.dart' as _i8;
 
 /// API dành cho người dùng đang đăng nhập.
 /// {@category Endpoint}
@@ -333,6 +335,21 @@ class EndpointJwtRefresh extends _i5.EndpointRefreshJwtTokens {
   );
 }
 
+/// {@category Endpoint}
+class EndpointStudent extends _i1.EndpointRef {
+  EndpointStudent(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'student';
+
+  _i2.Future<_i6.CurriculumDetailsDto?> getMyCurriculum() =>
+      caller.callServerEndpoint<_i6.CurriculumDetailsDto?>(
+        'student',
+        'getMyCurriculum',
+        {},
+      );
+}
+
 /// This is an example endpoint that returns a greeting message through
 /// its [hello] method.
 /// {@category Endpoint}
@@ -343,8 +360,8 @@ class EndpointGreeting extends _i1.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i2.Future<_i6.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i6.Greeting>(
+  _i2.Future<_i7.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i7.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -382,7 +399,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i7.Protocol(),
+         _i8.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -396,6 +413,7 @@ class Client extends _i1.ServerpodClientShared {
     emailIdp = EndpointEmailIdp(this);
     googleIdp = EndpointGoogleIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
+    student = EndpointStudent(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
@@ -410,6 +428,8 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointJwtRefresh jwtRefresh;
 
+  late final EndpointStudent student;
+
   late final EndpointGreeting greeting;
 
   late final Modules modules;
@@ -421,6 +441,7 @@ class Client extends _i1.ServerpodClientShared {
     'emailIdp': emailIdp,
     'googleIdp': googleIdp,
     'jwtRefresh': jwtRefresh,
+    'student': student,
     'greeting': greeting,
   };
 

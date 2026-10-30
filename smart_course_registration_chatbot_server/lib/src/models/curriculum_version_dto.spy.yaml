@@ -1,0 +1,5 @@
+class: CurriculumVersionDto
+fields:
+  versionCode: String
+  effectiveYear: int
+  status: String
