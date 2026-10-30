@@ -17,11 +17,12 @@ import '../endpoints/admin_account_endpoint.dart' as _i3;
 import '../endpoints/email_idp_endpoint.dart' as _i4;
 import '../endpoints/google_idp_endpoint.dart' as _i5;
 import '../endpoints/jwt_refresh_endpoint.dart' as _i6;
-import '../greetings/greeting_endpoint.dart' as _i7;
+import '../endpoints/student_endpoint.dart' as _i7;
+import '../greetings/greeting_endpoint.dart' as _i8;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i8;
-import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i9;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _i10;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -57,7 +58,13 @@ class Endpoints extends _i1.EndpointDispatch {
           'jwtRefresh',
           null,
         ),
-      'greeting': _i7.GreetingEndpoint()
+      'student': _i7.StudentEndpoint()
+        ..initialize(
+          server,
+          'student',
+          null,
+        ),
+      'greeting': _i8.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
@@ -376,6 +383,22 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['student'] = _i1.EndpointConnector(
+      name: 'student',
+      endpoint: endpoints['student']!,
+      methodConnectors: {
+        'getMyCurriculum': _i1.MethodConnector(
+          name: 'getMyCurriculum',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['student'] as _i7.StudentEndpoint)
+                  .getMyCurriculum(session),
+        ),
+      },
+    );
     connectors['greeting'] = _i1.EndpointConnector(
       name: 'greeting',
       endpoint: endpoints['greeting']!,
@@ -393,16 +416,16 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i7.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i8.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i8.Endpoints()
+    modules['serverpod_auth_idp'] = _i9.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i9.Endpoints()
+    modules['serverpod_auth_core'] = _i10.Endpoints()
       ..initializeEndpoints(server);
   }
 }

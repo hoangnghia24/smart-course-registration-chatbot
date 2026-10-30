@@ -25,12 +25,17 @@ import 'course.dart' as _i9;
 import 'course_item_dto.dart' as _i10;
 import 'current_user_dto.dart' as _i11;
 import 'curriculum.dart' as _i12;
-import 'curriculum_version.dart' as _i13;
-import 'greetings/greeting.dart' as _i14;
-import 'lecturer.dart' as _i15;
-import 'lecturer_status.dart' as _i16;
-import 'student.dart' as _i17;
-import 'user_account.dart' as _i18;
+import 'curriculum_details_dto.dart' as _i13;
+import 'curriculum_dto.dart' as _i14;
+import 'curriculum_item.dart' as _i15;
+import 'curriculum_item_detail_dto.dart' as _i16;
+import 'curriculum_version.dart' as _i17;
+import 'curriculum_version_dto.dart' as _i18;
+import 'greetings/greeting.dart' as _i19;
+import 'lecturer.dart' as _i20;
+import 'lecturer_status.dart' as _i21;
+import 'student.dart' as _i22;
+import 'user_account.dart' as _i23;
 export 'account_role.dart';
 export 'account_status.dart';
 export 'app_exception.dart';
@@ -39,7 +44,12 @@ export 'course.dart';
 export 'course_item_dto.dart';
 export 'current_user_dto.dart';
 export 'curriculum.dart';
+export 'curriculum_details_dto.dart';
+export 'curriculum_dto.dart';
+export 'curriculum_item.dart';
+export 'curriculum_item_detail_dto.dart';
 export 'curriculum_version.dart';
+export 'curriculum_version_dto.dart';
 export 'greetings/greeting.dart';
 export 'lecturer.dart';
 export 'lecturer_status.dart';
@@ -272,6 +282,100 @@ class Protocol extends _i1.SerializationManagerServer {
             _i2.IndexElementDefinition(
               type: _i2.IndexElementDefinitionType.column,
               definition: 'code',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_curriculum_item',
+      dartName: 'CurriculumItem',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_curriculum_item_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'curriculumVersionId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'courseId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'semester',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'isRequired',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_curriculum_item_fk_0',
+          columns: ['curriculumVersionId'],
+          referenceTable: 'app_curriculum_version',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_curriculum_item_fk_1',
+          columns: ['courseId'],
+          referenceTable: 'app_course',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_curriculum_item_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'app_curriculum_item_unique',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'curriculumVersionId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'courseId',
             ),
           ],
           type: 'btree',
@@ -711,23 +815,38 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i12.Curriculum) {
       return _i12.Curriculum.fromJson(data) as T;
     }
-    if (t == _i13.CurriculumVersion) {
-      return _i13.CurriculumVersion.fromJson(data) as T;
+    if (t == _i13.CurriculumDetailsDto) {
+      return _i13.CurriculumDetailsDto.fromJson(data) as T;
     }
-    if (t == _i14.Greeting) {
-      return _i14.Greeting.fromJson(data) as T;
+    if (t == _i14.CurriculumDto) {
+      return _i14.CurriculumDto.fromJson(data) as T;
     }
-    if (t == _i15.Lecturer) {
-      return _i15.Lecturer.fromJson(data) as T;
+    if (t == _i15.CurriculumItem) {
+      return _i15.CurriculumItem.fromJson(data) as T;
     }
-    if (t == _i16.LecturerStatus) {
-      return _i16.LecturerStatus.fromJson(data) as T;
+    if (t == _i16.CurriculumItemDetailDto) {
+      return _i16.CurriculumItemDetailDto.fromJson(data) as T;
     }
-    if (t == _i17.Student) {
-      return _i17.Student.fromJson(data) as T;
+    if (t == _i17.CurriculumVersion) {
+      return _i17.CurriculumVersion.fromJson(data) as T;
     }
-    if (t == _i18.UserAccount) {
-      return _i18.UserAccount.fromJson(data) as T;
+    if (t == _i18.CurriculumVersionDto) {
+      return _i18.CurriculumVersionDto.fromJson(data) as T;
+    }
+    if (t == _i19.Greeting) {
+      return _i19.Greeting.fromJson(data) as T;
+    }
+    if (t == _i20.Lecturer) {
+      return _i20.Lecturer.fromJson(data) as T;
+    }
+    if (t == _i21.LecturerStatus) {
+      return _i21.LecturerStatus.fromJson(data) as T;
+    }
+    if (t == _i22.Student) {
+      return _i22.Student.fromJson(data) as T;
+    }
+    if (t == _i23.UserAccount) {
+      return _i23.UserAccount.fromJson(data) as T;
     }
     if (t == _i1.getType<_i5.AccountRole?>()) {
       return (data != null ? _i5.AccountRole.fromJson(data) : null) as T;
@@ -753,23 +872,47 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i12.Curriculum?>()) {
       return (data != null ? _i12.Curriculum.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i13.CurriculumVersion?>()) {
-      return (data != null ? _i13.CurriculumVersion.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i13.CurriculumDetailsDto?>()) {
+      return (data != null ? _i13.CurriculumDetailsDto.fromJson(data) : null)
+          as T;
     }
-    if (t == _i1.getType<_i14.Greeting?>()) {
-      return (data != null ? _i14.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i14.CurriculumDto?>()) {
+      return (data != null ? _i14.CurriculumDto.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i15.Lecturer?>()) {
-      return (data != null ? _i15.Lecturer.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i15.CurriculumItem?>()) {
+      return (data != null ? _i15.CurriculumItem.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i16.LecturerStatus?>()) {
-      return (data != null ? _i16.LecturerStatus.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i16.CurriculumItemDetailDto?>()) {
+      return (data != null ? _i16.CurriculumItemDetailDto.fromJson(data) : null)
+          as T;
     }
-    if (t == _i1.getType<_i17.Student?>()) {
-      return (data != null ? _i17.Student.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i17.CurriculumVersion?>()) {
+      return (data != null ? _i17.CurriculumVersion.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i18.UserAccount?>()) {
-      return (data != null ? _i18.UserAccount.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i18.CurriculumVersionDto?>()) {
+      return (data != null ? _i18.CurriculumVersionDto.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i19.Greeting?>()) {
+      return (data != null ? _i19.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i20.Lecturer?>()) {
+      return (data != null ? _i20.Lecturer.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i21.LecturerStatus?>()) {
+      return (data != null ? _i21.LecturerStatus.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i22.Student?>()) {
+      return (data != null ? _i22.Student.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i23.UserAccount?>()) {
+      return (data != null ? _i23.UserAccount.fromJson(data) : null) as T;
+    }
+    if (t == List<_i16.CurriculumItemDetailDto>) {
+      return (data as List)
+              .map((e) => deserialize<_i16.CurriculumItemDetailDto>(e))
+              .toList()
+          as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -793,12 +936,17 @@ class Protocol extends _i1.SerializationManagerServer {
       _i10.CourseItemDto => 'CourseItemDto',
       _i11.CurrentUserDto => 'CurrentUserDto',
       _i12.Curriculum => 'Curriculum',
-      _i13.CurriculumVersion => 'CurriculumVersion',
-      _i14.Greeting => 'Greeting',
-      _i15.Lecturer => 'Lecturer',
-      _i16.LecturerStatus => 'LecturerStatus',
-      _i17.Student => 'Student',
-      _i18.UserAccount => 'UserAccount',
+      _i13.CurriculumDetailsDto => 'CurriculumDetailsDto',
+      _i14.CurriculumDto => 'CurriculumDto',
+      _i15.CurriculumItem => 'CurriculumItem',
+      _i16.CurriculumItemDetailDto => 'CurriculumItemDetailDto',
+      _i17.CurriculumVersion => 'CurriculumVersion',
+      _i18.CurriculumVersionDto => 'CurriculumVersionDto',
+      _i19.Greeting => 'Greeting',
+      _i20.Lecturer => 'Lecturer',
+      _i21.LecturerStatus => 'LecturerStatus',
+      _i22.Student => 'Student',
+      _i23.UserAccount => 'UserAccount',
       _ => null,
     };
   }
@@ -832,17 +980,27 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'CurrentUserDto';
       case _i12.Curriculum():
         return 'Curriculum';
-      case _i13.CurriculumVersion():
+      case _i13.CurriculumDetailsDto():
+        return 'CurriculumDetailsDto';
+      case _i14.CurriculumDto():
+        return 'CurriculumDto';
+      case _i15.CurriculumItem():
+        return 'CurriculumItem';
+      case _i16.CurriculumItemDetailDto():
+        return 'CurriculumItemDetailDto';
+      case _i17.CurriculumVersion():
         return 'CurriculumVersion';
-      case _i14.Greeting():
+      case _i18.CurriculumVersionDto():
+        return 'CurriculumVersionDto';
+      case _i19.Greeting():
         return 'Greeting';
-      case _i15.Lecturer():
+      case _i20.Lecturer():
         return 'Lecturer';
-      case _i16.LecturerStatus():
+      case _i21.LecturerStatus():
         return 'LecturerStatus';
-      case _i17.Student():
+      case _i22.Student():
         return 'Student';
-      case _i18.UserAccount():
+      case _i23.UserAccount():
         return 'UserAccount';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -890,23 +1048,38 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'Curriculum') {
       return deserialize<_i12.Curriculum>(data['data']);
     }
+    if (dataClassName == 'CurriculumDetailsDto') {
+      return deserialize<_i13.CurriculumDetailsDto>(data['data']);
+    }
+    if (dataClassName == 'CurriculumDto') {
+      return deserialize<_i14.CurriculumDto>(data['data']);
+    }
+    if (dataClassName == 'CurriculumItem') {
+      return deserialize<_i15.CurriculumItem>(data['data']);
+    }
+    if (dataClassName == 'CurriculumItemDetailDto') {
+      return deserialize<_i16.CurriculumItemDetailDto>(data['data']);
+    }
     if (dataClassName == 'CurriculumVersion') {
-      return deserialize<_i13.CurriculumVersion>(data['data']);
+      return deserialize<_i17.CurriculumVersion>(data['data']);
+    }
+    if (dataClassName == 'CurriculumVersionDto') {
+      return deserialize<_i18.CurriculumVersionDto>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i14.Greeting>(data['data']);
+      return deserialize<_i19.Greeting>(data['data']);
     }
     if (dataClassName == 'Lecturer') {
-      return deserialize<_i15.Lecturer>(data['data']);
+      return deserialize<_i20.Lecturer>(data['data']);
     }
     if (dataClassName == 'LecturerStatus') {
-      return deserialize<_i16.LecturerStatus>(data['data']);
+      return deserialize<_i21.LecturerStatus>(data['data']);
     }
     if (dataClassName == 'Student') {
-      return deserialize<_i17.Student>(data['data']);
+      return deserialize<_i22.Student>(data['data']);
     }
     if (dataClassName == 'UserAccount') {
-      return deserialize<_i18.UserAccount>(data['data']);
+      return deserialize<_i23.UserAccount>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -950,14 +1123,16 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i9.Course.t;
       case _i12.Curriculum:
         return _i12.Curriculum.t;
-      case _i13.CurriculumVersion:
-        return _i13.CurriculumVersion.t;
-      case _i15.Lecturer:
-        return _i15.Lecturer.t;
-      case _i17.Student:
-        return _i17.Student.t;
-      case _i18.UserAccount:
-        return _i18.UserAccount.t;
+      case _i15.CurriculumItem:
+        return _i15.CurriculumItem.t;
+      case _i17.CurriculumVersion:
+        return _i17.CurriculumVersion.t;
+      case _i20.Lecturer:
+        return _i20.Lecturer.t;
+      case _i22.Student:
+        return _i22.Student.t;
+      case _i23.UserAccount:
+        return _i23.UserAccount.t;
     }
     return null;
   }

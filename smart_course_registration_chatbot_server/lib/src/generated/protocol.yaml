@@ -18,5 +18,7 @@ googleIdp:
   - hasAccount:
 jwtRefresh:
   - refreshAccessToken:
+student:
+  - getMyCurriculum:
 greeting:
   - hello:

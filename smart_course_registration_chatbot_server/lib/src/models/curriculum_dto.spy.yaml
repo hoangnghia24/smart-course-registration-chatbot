@@ -1,0 +1,5 @@
+class: CurriculumDto
+fields:
+  code: String
+  name: String
+  majorCode: String
