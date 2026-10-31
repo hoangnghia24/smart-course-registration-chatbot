@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -7,9 +5,18 @@ import '../../core/widgets/dashboard_widgets.dart';
 import '../../data/mock/mock_auth.dart';
 
 class LoginDemoScreen extends StatefulWidget {
-  const LoginDemoScreen({super.key, required this.authController});
+  const LoginDemoScreen({
+    super.key,
+    this.authController,
+    this.onServerSignIn,
+  }) : assert(authController != null || onServerSignIn != null);
 
-  final DemoAuthController authController;
+  /// Giữ lại chế độ demo để không làm hỏng widget tests Tuần 5.
+  final DemoAuthController? authController;
+
+  /// F01: form Figma giữ nguyên, chỉ thay nơi thực hiện đăng nhập.
+  /// Trả null nếu thành công hoặc một thông báo lỗi để hiển thị.
+  final Future<String?> Function(String email, String password)? onServerSignIn;
 
   @override
   State<LoginDemoScreen> createState() => _LoginDemoScreenState();
@@ -23,6 +30,7 @@ class _LoginDemoScreenState extends State<LoginDemoScreen> {
   bool _rememberLogin = false;
   bool _obscurePassword = true;
   String? _authError;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -31,20 +39,36 @@ class _LoginDemoScreenState extends State<LoginDemoScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_submitting) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _authError = null);
 
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final result = widget.authController.signIn(
+    if (widget.onServerSignIn != null) {
+      setState(() => _submitting = true);
+      try {
+        final issue = await widget.onServerSignIn!(
+          _usernameController.text.trim(),
+          _passwordController.text,
+        );
+        if (mounted) setState(() => _authError = issue);
+      } catch (_) {
+        if (mounted) {
+          setState(() => _authError = 'Không thể kết nối máy chủ.');
+        }
+      } finally {
+        if (mounted) setState(() => _submitting = false);
+      }
+      return;
+    }
+
+    final result = widget.authController!.signIn(
       username: _usernameController.text,
       password: _passwordController.text,
     );
-
-    if (!result.success) {
-      setState(() => _authError = result.message);
-    }
+    if (!result.success) setState(() => _authError = result.message);
   }
 
   @override
@@ -52,28 +76,39 @@ class _LoginDemoScreenState extends State<LoginDemoScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.only(bottom: 24),
-          child: _LoginCanvas(
-            formKey: _formKey,
-            usernameController: _usernameController,
-            passwordController: _passwordController,
-            rememberLogin: _rememberLogin,
-            obscurePassword: _obscurePassword,
-            authError: _authError,
-            onRememberChanged: (value) {
-              setState(() => _rememberLogin = value ?? false);
-            },
-            onTogglePassword: () {
-              setState(() => _obscurePassword = !_obscurePassword);
-            },
-            onForgotPassword: () => showPreviewMessage(
-              context,
-              'Quên mật khẩu sẽ được triển khai sau; demo không gửi email thật.',
-            ),
-            onSubmit: _submit,
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: SizedBox(
+                width: double.infinity,
+                height: 844,
+                child: _LoginCanvas(
+                  formKey: _formKey,
+                  usernameController: _usernameController,
+                  passwordController: _passwordController,
+                  rememberLogin: _rememberLogin,
+                  obscurePassword: _obscurePassword,
+                  authError: _authError,
+                  isServerMode: widget.onServerSignIn != null,
+                  isBusy: _submitting,
+                  onRememberChanged: (value) {
+                    setState(() => _rememberLogin = value ?? false);
+                  },
+                  onTogglePassword: () {
+                    setState(() => _obscurePassword = !_obscurePassword);
+                  },
+                  onForgotPassword: () => showPreviewMessage(
+                    context,
+                    widget.onServerSignIn != null
+                        ? 'Chưa có xác nhận API đặt lại mật khẩu. Vui lòng liên hệ quản trị viên.'
+                        : 'Quên mật khẩu sẽ được triển khai sau; demo không gửi email thật.',
+                  ),
+                  onSubmit: _submit,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -88,6 +123,8 @@ class _LoginCanvas extends StatelessWidget {
     required this.rememberLogin,
     required this.obscurePassword,
     required this.authError,
+    required this.isServerMode,
+    required this.isBusy,
     required this.onRememberChanged,
     required this.onTogglePassword,
     required this.onForgotPassword,
@@ -100,6 +137,8 @@ class _LoginCanvas extends StatelessWidget {
   final bool rememberLogin;
   final bool obscurePassword;
   final String? authError;
+  final bool isServerMode;
+  final bool isBusy;
   final ValueChanged<bool?> onRememberChanged;
   final VoidCallback onTogglePassword;
   final VoidCallback onForgotPassword;
@@ -107,29 +146,33 @@ class _LoginCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
         const _LoginHero(),
-        Transform.translate(
-          offset: const Offset(0, -48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _LoginCard(
-              formKey: formKey,
-              usernameController: usernameController,
-              passwordController: passwordController,
-              rememberLogin: rememberLogin,
-              obscurePassword: obscurePassword,
-              authError: authError,
-              onRememberChanged: onRememberChanged,
-              onTogglePassword: onTogglePassword,
-              onForgotPassword: onForgotPassword,
-              onSubmit: onSubmit,
-            ),
+        Positioned(
+          top: 230,
+          left: 20,
+          right: 20,
+          child: _LoginCard(
+            formKey: formKey,
+            usernameController: usernameController,
+            passwordController: passwordController,
+            rememberLogin: rememberLogin,
+            obscurePassword: obscurePassword,
+            authError: authError,
+            isServerMode: isServerMode,
+            isBusy: isBusy,
+            onRememberChanged: onRememberChanged,
+            onTogglePassword: onTogglePassword,
+            onForgotPassword: onForgotPassword,
+            onSubmit: onSubmit,
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+        const Positioned(
+          top: 790,
+          left: 20,
+          right: 20,
           child: _LoginFooter(),
         ),
       ],
@@ -249,170 +292,12 @@ class _AcademicLogo extends StatelessWidget {
         color: Colors.white,
         shape: BoxShape.circle,
       ),
-      child: const _LoginVectorIcon(
-        kind: _LoginIconKind.graduation,
+      child: const Icon(
+        Icons.school_rounded,
         color: AppColors.primary,
         size: 25,
       ),
     );
-  }
-}
-
-enum _LoginIconKind { graduation, mail, lock, eye, eyeOff, arrow }
-
-/// Login-only vector icons avoid a hard dependency on the browser's loaded
-/// MaterialIcons font. The dashboards continue using the shared Material icon
-/// configuration from the app theme.
-class _LoginVectorIcon extends StatelessWidget {
-  const _LoginVectorIcon({
-    required this.kind,
-    required this.color,
-    required this.size,
-  });
-
-  final _LoginIconKind kind;
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size.square(size),
-      painter: _LoginVectorPainter(kind: kind, color: color),
-    );
-  }
-}
-
-class _LoginVectorPainter extends CustomPainter {
-  const _LoginVectorPainter({required this.kind, required this.color});
-
-  final _LoginIconKind kind;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final stroke = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1.5, size.width * 0.085)
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final width = size.width;
-    final height = size.height;
-
-    switch (kind) {
-      case _LoginIconKind.graduation:
-        final cap = Path()
-          ..moveTo(width * .08, height * .38)
-          ..lineTo(width * .5, height * .14)
-          ..lineTo(width * .92, height * .38)
-          ..lineTo(width * .5, height * .62)
-          ..close();
-        canvas.drawPath(cap, stroke);
-        canvas.drawLine(
-          Offset(width * .25, height * .5),
-          Offset(width * .25, height * .76),
-          stroke,
-        );
-        canvas.drawArc(
-          Rect.fromLTWH(width * .25, height * .5, width * .5, height * .34),
-          0,
-          math.pi,
-          false,
-          stroke,
-        );
-        canvas.drawLine(
-          Offset(width * .9, height * .38),
-          Offset(width * .9, height * .73),
-          stroke,
-        );
-        canvas.drawCircle(
-          Offset(width * .9, height * .81),
-          math.max(1, width * .045),
-          Paint()..color = color,
-        );
-      case _LoginIconKind.mail:
-        final rect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(width * .08, height * .18, width * .84, height * .64),
-          Radius.circular(width * .08),
-        );
-        canvas.drawRRect(rect, stroke);
-        canvas.drawLine(
-          Offset(width * .12, height * .25),
-          Offset(width * .5, height * .54),
-          stroke,
-        );
-        canvas.drawLine(
-          Offset(width * .88, height * .25),
-          Offset(width * .5, height * .54),
-          stroke,
-        );
-      case _LoginIconKind.lock:
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(width * .18, height * .42, width * .64, height * .46),
-            Radius.circular(width * .08),
-          ),
-          stroke,
-        );
-        canvas.drawArc(
-          Rect.fromLTWH(width * .3, height * .08, width * .4, height * .58),
-          math.pi,
-          math.pi,
-          false,
-          stroke,
-        );
-      case _LoginIconKind.eye:
-      case _LoginIconKind.eyeOff:
-        final eye = Path()
-          ..moveTo(width * .08, height * .5)
-          ..quadraticBezierTo(
-            width * .5,
-            height * .04,
-            width * .92,
-            height * .5,
-          )
-          ..quadraticBezierTo(
-            width * .5,
-            height * .96,
-            width * .08,
-            height * .5,
-          );
-        canvas.drawPath(eye, stroke);
-        canvas.drawCircle(
-          Offset(width * .5, height * .5),
-          width * .13,
-          stroke,
-        );
-        if (kind == _LoginIconKind.eyeOff) {
-          canvas.drawLine(
-            Offset(width * .12, height * .12),
-            Offset(width * .88, height * .88),
-            stroke,
-          );
-        }
-      case _LoginIconKind.arrow:
-        canvas.drawLine(
-          Offset(width * .12, height * .5),
-          Offset(width * .86, height * .5),
-          stroke,
-        );
-        canvas.drawLine(
-          Offset(width * .58, height * .2),
-          Offset(width * .88, height * .5),
-          stroke,
-        );
-        canvas.drawLine(
-          Offset(width * .58, height * .8),
-          Offset(width * .88, height * .5),
-          stroke,
-        );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _LoginVectorPainter oldDelegate) {
-    return oldDelegate.kind != kind || oldDelegate.color != color;
   }
 }
 
@@ -424,6 +309,8 @@ class _LoginCard extends StatelessWidget {
     required this.rememberLogin,
     required this.obscurePassword,
     required this.authError,
+    required this.isServerMode,
+    required this.isBusy,
     required this.onRememberChanged,
     required this.onTogglePassword,
     required this.onForgotPassword,
@@ -436,6 +323,8 @@ class _LoginCard extends StatelessWidget {
   final bool rememberLogin;
   final bool obscurePassword;
   final String? authError;
+  final bool isServerMode;
+  final bool isBusy;
   final ValueChanged<bool?> onRememberChanged;
   final VoidCallback onTogglePassword;
   final VoidCallback onForgotPassword;
@@ -468,23 +357,16 @@ class _LoginCard extends StatelessWidget {
                 style: TextStyle(color: AppColors.mutedText, fontSize: 12),
               ),
               const SizedBox(height: 17),
-              _FieldLabel(label: 'Email hoặc mã người dùng'),
+              _FieldLabel(label: isServerMode ? 'Email nhà trường' : 'Email hoặc mã người dùng'),
               const SizedBox(height: 6),
               TextFormField(
                 key: const ValueKey('login-username'),
                 controller: usernameController,
                 textInputAction: TextInputAction.next,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: 'Nhập email hoặc mã sinh viên',
-                  prefixIcon: Padding(
-                    padding: EdgeInsets.all(14),
-                    child: _LoginVectorIcon(
-                      kind: _LoginIconKind.mail,
-                      color: AppColors.mutedText,
-                      size: 20,
-                    ),
-                  ),
+                decoration: InputDecoration(
+                  hintText: isServerMode ? 'Nhập email nhà trường' : 'Nhập email hoặc mã sinh viên',
+                  prefixIcon: Icon(Icons.mail_outline_rounded),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -504,24 +386,15 @@ class _LoginCard extends StatelessWidget {
                 onFieldSubmitted: (_) => onSubmit(),
                 decoration: InputDecoration(
                   hintText: 'Nhập mật khẩu',
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.all(14),
-                    child: _LoginVectorIcon(
-                      kind: _LoginIconKind.lock,
-                      color: AppColors.mutedText,
-                      size: 20,
-                    ),
-                  ),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
                   suffixIcon: IconButton(
                     key: const ValueKey('login-toggle-password'),
                     tooltip: obscurePassword ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
                     onPressed: onTogglePassword,
-                    icon: _LoginVectorIcon(
-                      kind: obscurePassword
-                          ? _LoginIconKind.eyeOff
-                          : _LoginIconKind.eye,
-                      color: AppColors.mutedText,
-                      size: 21,
+                    icon: Icon(
+                      obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                     ),
                   ),
                 ),
@@ -546,22 +419,27 @@ class _LoginCard extends StatelessWidget {
               const SizedBox(height: 7),
               Row(
                 children: [
-                  Checkbox(
-                    key: const ValueKey('login-remember'),
-                    value: rememberLogin,
-                    onChanged: onRememberChanged,
-                    visualDensity: VisualDensity.compact,
-                    activeColor: AppColors.primary,
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Ghi nhớ đăng nhập',
-                      style: TextStyle(
-                        color: AppColors.mutedText,
-                        fontSize: 11,
+                  if (!isServerMode) ...[
+                    Checkbox(
+                      key: const ValueKey('login-remember'),
+                      value: rememberLogin,
+                      onChanged: onRememberChanged,
+                      visualDensity: VisualDensity.compact,
+                      activeColor: AppColors.primary,
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Ghi nhớ đăng nhập',
+                        style: TextStyle(color: AppColors.mutedText, fontSize: 11),
                       ),
                     ),
-                  ),
+                  ] else
+                    const Expanded(
+                      child: Text(
+                        'Phiên đăng nhập do Serverpod quản lý',
+                        style: TextStyle(color: AppColors.mutedText, fontSize: 10),
+                      ),
+                    ),
                   TextButton(
                     onPressed: onForgotPassword,
                     style: TextButton.styleFrom(
@@ -586,21 +464,25 @@ class _LoginCard extends StatelessWidget {
                 height: 48,
                 child: FilledButton.icon(
                   key: const ValueKey('login-submit'),
-                  onPressed: onSubmit,
-                  icon: const _LoginVectorIcon(
-                    kind: _LoginIconKind.arrow,
-                    color: Colors.white,
-                    size: 19,
-                  ),
-                  label: const Text('Đăng nhập'),
+                  onPressed: isBusy ? null : onSubmit,
+                  icon: isBusy
+                      ? const SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.arrow_forward_rounded, size: 19),
+                  label: Text(isBusy ? 'Đang đăng nhập...' : 'Đăng nhập'),
                 ),
               ),
               const SizedBox(height: 11),
-              const Center(
+              Center(
                 child: Text(
-                  'DEMO-ONLY • sv001 / gv001 / admin001 • demo123',
+                  isServerMode
+                      ? 'Dùng email và mật khẩu được nhà trường cấp'
+                      : 'DEMO-ONLY • sv001 / gv001 / admin001 • demo123',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.mutedText,
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
