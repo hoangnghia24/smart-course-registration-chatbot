@@ -216,35 +216,28 @@ class CourseEndpoint extends Endpoint {
   }
 
   /// Tìm kiếm môn học có phân trang.
+  /// Admin: Xem tất cả môn học.
+  /// Student, Lecturer: Chỉ xem môn học đang hoạt động.
   Future<List<CourseDto>> searchCourses(
     Session session,
     String query,
     int page,
     int pageSize,
   ) async {
-    // 1. Kiểm tra quyền Admin.
-    await AccountGuard.requireRole(
+    // 1. Xác thực và kiểm tra quyền.
+    final account = await AccountGuard.requireRole(
       session,
-      allowedRoles: {AccountRole.admin},
+      allowedRoles: {
+        AccountRole.admin,
+        AccountRole.student,
+        AccountRole.lecturer,
+      },
     );
 
     // 2. Chuẩn hóa từ khóa.
     final keyword = query.trim();
 
-    // 3. Không truy vấn khi không nhập từ khóa.
-    if (keyword.isEmpty) {
-      return [];
-    }
-
-    // 4. Giới hạn độ dài từ khóa.
-    if (keyword.runes.length > 64) {
-      throw AppException(
-        code: 'INVALID_SEARCH_QUERY',
-        message: 'Từ khóa tìm kiếm quá dài.',
-      );
-    }
-
-    // 5. Kiểm tra tham số phân trang.
+    // 3. Kiểm tra phân trang.
     if (page < 1 || pageSize < 1 || pageSize > 50) {
       throw AppException(
         code: 'INVALID_PAGINATION',
@@ -252,28 +245,49 @@ class CourseEndpoint extends Endpoint {
       );
     }
 
-    // 6. Escape wildcard và tạo mẫu tìm kiếm.
+    // 4. Không tìm kiếm khi từ khóa rỗng.
+    if (keyword.isEmpty) {
+      return [];
+    }
+
+    // 5. Giới hạn độ dài từ khóa.
+    if (keyword.runes.length > 64) {
+      throw AppException(
+        code: 'INVALID_SEARCH_QUERY',
+        message: 'Từ khóa tìm kiếm quá dài.',
+      );
+    }
+
+    // 6. Tạo mẫu tìm kiếm.
     final escapedKeyword = _escapeLikePattern(keyword);
     final pattern = '%$escapedKeyword%';
 
-    // 7. Tính vị trí bắt đầu.
+    // 7. Tính offset.
     final offset = (page - 1) * pageSize;
 
-    // 8. Truy vấn Database.
+    // 8. Truy vấn database theo vai trò.
     final courses = await Course.db.find(
       session,
-      where: (t) => t.code.ilike(pattern) | t.name.ilike(pattern),
+      where: (t) {
+        final searchCondition = t.code.ilike(pattern) | t.name.ilike(pattern);
 
+        // Admin được xem cả môn học ngừng hoạt động.
+        if (account.role == AccountRole.admin) {
+          return searchCondition;
+        }
+
+        // Student và Lecturer chỉ xem môn đang hoạt động.
+        return searchCondition & t.isActive.equals(true);
+      },
       orderByList: (t) => [
         Order(column: t.code, orderDescending: false),
         Order(column: t.id, orderDescending: false),
       ],
-
       limit: pageSize,
       offset: offset,
     );
 
-    // 9. Chuyển Course thành CourseDto.
+    // 9. Chuyển sang DTO.
     return courses
         .map(
           (c) => CourseDto(
