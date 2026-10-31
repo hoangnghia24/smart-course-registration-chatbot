@@ -1,0 +1,8 @@
+class: CourseDto
+fields:
+  id: int?
+  code: String
+  name: String
+  credits: int
+  description: String?
+  isActive: bool
