@@ -1,4 +1,3 @@
-
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
@@ -51,9 +50,7 @@ class StudentEndpoint extends Endpoint {
     );
 
     // 6. Tập hợp ID các môn học, loại trùng
-    final courseIds = items
-        .map((item) => item.courseId)
-        .toSet();
+    final courseIds = items.map((item) => item.courseId).toSet();
 
     // 7. Lấy nhiều Course trong một truy vấn
     final courses = courseIds.isEmpty

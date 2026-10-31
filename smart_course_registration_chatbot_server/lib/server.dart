@@ -11,6 +11,7 @@ import 'src/web/routes/root.dart';
 import 'src/web/app_health_route.dart';
 import 'src/services/auth/email_verification_service.dart';
 import 'src/services/auth/dev_seed_accounts.dart';
+
 /// The starting point of the Serverpod server.
 void run(List<String> args) async {
   // Initialize Serverpod and connect it with your generated code.
@@ -20,29 +21,30 @@ void run(List<String> args) async {
   // Token managers will be used to validate and issue authentication keys,
   // and the identity providers will be the authentication options available for users.
   pod.initializeAuthServices(
-  tokenManagerBuilders: [
-    ServerSideSessionsConfigFromPasswords(
-      defaultSessionLifetime: Duration(days: 14),
-      defaultSessionInactivityTimeout: Duration(days: 7),
+    tokenManagerBuilders: [
+      ServerSideSessionsConfigFromPasswords(
+        defaultSessionLifetime: Duration(days: 14),
+        defaultSessionInactivityTimeout: Duration(days: 7),
+      ),
+    ],
+    identityProviderBuilders: [
+      EmailIdpConfigFromPasswords(
+        sendRegistrationVerificationCode: sendRegistrationCode,
+        sendPasswordResetVerificationCode: sendPasswordResetCode,
+      ),
+    ],
+    authUsersConfig: AuthUsersConfig(
+      onBeforeAuthUserCreated:
+          (
+            session,
+            scopes,
+            blocked, {
+            required transaction,
+          }) {
+            return (scopes: <Scope>{}, blocked: true);
+          },
     ),
-  ],
-  identityProviderBuilders: [
-    EmailIdpConfigFromPasswords(
-      sendRegistrationVerificationCode: sendRegistrationCode,
-      sendPasswordResetVerificationCode: sendPasswordResetCode,
-    ),
-  ],
-  authUsersConfig: AuthUsersConfig(
-    onBeforeAuthUserCreated: (
-      session,
-      scopes,
-      blocked, {
-      required transaction,
-    }) {
-      return (scopes: <Scope>{}, blocked: true);
-    },
-  ),
-);
+  );
 
   // Setup a default page at the web root.
   // These are used by the default page.
@@ -61,7 +63,7 @@ void run(List<String> args) async {
     AppConfigRoute(apiConfig: pod.config.apiServer),
     '/app/assets/assets/config.json',
   );
-  
+
   // Checks if the flutter web app has been built and serves it if it has.
   final appDir = Directory(Uri(path: 'web/app').toFilePath());
   if (appDir.existsSync()) {
@@ -103,4 +105,3 @@ void run(List<String> args) async {
     }
   }
 }
-

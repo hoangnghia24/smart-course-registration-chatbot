@@ -44,24 +44,25 @@ class AccountEndpoint extends Endpoint {
       lecturerCode: lecturerCode,
     );
   }
+
   /// Đăng xuất tài khoản khỏi tất cả các thiết bị.
-Future<bool> logoutAll(Session session) async {
-  await AccountGuard.requireAuthenticatedAccount(session);
+  Future<bool> logoutAll(Session session) async {
+    await AccountGuard.requireAuthenticatedAccount(session);
 
-  final authUserId = session.authenticated?.authUserId;
+    final authUserId = session.authenticated?.authUserId;
 
-  if (authUserId == null) {
-    throw AppException(
-      code: 'AUTH_REQUIRED',
-      message: 'Vui lòng đăng nhập.',
+    if (authUserId == null) {
+      throw AppException(
+        code: 'AUTH_REQUIRED',
+        message: 'Vui lòng đăng nhập.',
+      );
+    }
+
+    await AuthServices.instance.tokenManager.revokeAllTokens(
+      session,
+      authUserId: authUserId,
     );
+
+    return true;
   }
-
-  await AuthServices.instance.tokenManager.revokeAllTokens(
-    session,
-    authUserId: authUserId,
-  );
-
-  return true;
-}
 }

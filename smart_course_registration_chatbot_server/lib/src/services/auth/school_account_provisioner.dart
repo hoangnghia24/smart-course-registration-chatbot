@@ -19,8 +19,7 @@ class SchoolAccountProvisioner {
     String? lecturerCode,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-        .hasMatch(normalizedEmail)) {
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(normalizedEmail)) {
       throw ArgumentError('Email không hợp lệ.');
     }
     // School-domain restriction is optional for demo environments; configure

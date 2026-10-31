@@ -1,4 +1,3 @@
-
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 
@@ -8,8 +7,7 @@ class AccountGuard {
     Session session,
   ) async {
     // Lấy danh tính từ session đã được Serverpod xác thực.
-    final authUserId =
-        session.authenticated?.userIdentifier;
+    final authUserId = session.authenticated?.userIdentifier;
 
     if (authUserId == null || authUserId.isEmpty) {
       throw AppException(
@@ -57,8 +55,7 @@ class AccountGuard {
     }
 
     // Dùng lại logic xác thực, không truy vấn trùng.
-    final account =
-        await requireAuthenticatedAccount(session);
+    final account = await requireAuthenticatedAccount(session);
 
     // Kiểm tra vai trò người dùng.
     if (!allowedRoles.contains(account.role)) {

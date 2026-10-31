@@ -1,4 +1,3 @@
-
 import 'package:serverpod/serverpod.dart';
 import 'package:serverpod_auth_idp_server/core.dart';
 
@@ -64,9 +63,7 @@ class AdminAccountEndpoint extends Endpoint {
         final now = DateTime.now().toUtc();
 
         // 3. Cập nhật UserAccount.
-        target.status = active
-            ? AccountStatus.active
-            : AccountStatus.inactive;
+        target.status = active ? AccountStatus.active : AccountStatus.inactive;
 
         target.updatedAt = now;
         target.statusChangedAt = now;
