@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_widgets.dart';
 import '../../data/mock/mock_dashboard_data.dart';
+import '../chat/chatbot_figma_screen.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key, this.onSignOut});
@@ -85,6 +86,13 @@ class StudentDashboard extends StatelessWidget {
                 icon: feature.icon,
                 iconColor: feature.iconColor,
                 iconBackground: feature.iconBackground,
+                onTap: feature.title == 'Trợ lý học vụ AI'
+                  ? () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ChatbotFigmaScreen(),
+                        ),
+                      )
+                  : null,
               ),
             ),
           ),
