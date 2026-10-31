@@ -430,6 +430,7 @@ class FeatureCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.iconBackground,
+    this.onTap,
   });
 
   final String title;
@@ -437,6 +438,7 @@ class FeatureCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color iconBackground;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -444,9 +446,9 @@ class FeatureCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => showPreviewMessage(
-          context,
-          'Chức năng này sẽ được triển khai ở tuần 6.',
+        onTap: onTap ?? () => showPreviewMessage(
+  context,
+  'Chức năng này sẽ được triển khai ở tuần 6.',
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
