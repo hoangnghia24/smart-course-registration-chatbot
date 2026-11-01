@@ -91,15 +91,18 @@ class EndpointCourse extends _i1.EndpointRef {
   @override
   String get name => 'course';
 
-  /// Lấy danh sách tất cả môn học.
-  _i2.Future<List<_i4.CourseDto>> getAllCourses() =>
-      caller.callServerEndpoint<List<_i4.CourseDto>>(
-        'course',
-        'getAllCourses',
-        {},
-      );
+  _i2.Future<List<_i4.CourseDto>> getCoursesPage(
+    int page,
+    int pageSize,
+  ) => caller.callServerEndpoint<List<_i4.CourseDto>>(
+    'course',
+    'getCoursesPage',
+    {
+      'page': page,
+      'pageSize': pageSize,
+    },
+  );
 
-  /// Tạo môn học mới.
   _i2.Future<_i4.CourseDto> createCourse(_i4.CourseDto courseDto) =>
       caller.callServerEndpoint<_i4.CourseDto>(
         'course',
@@ -115,7 +118,6 @@ class EndpointCourse extends _i1.EndpointRef {
         {'courseDto': courseDto},
       );
 
-  /// Xóa môn học.
   _i2.Future<bool> deleteCourse(int courseId) =>
       caller.callServerEndpoint<bool>(
         'course',
@@ -123,12 +125,28 @@ class EndpointCourse extends _i1.EndpointRef {
         {'courseId': courseId},
       );
 
-  /// Tìm kiếm môn học.
-  _i2.Future<List<_i4.CourseDto>> searchCourses(String query) =>
-      caller.callServerEndpoint<List<_i4.CourseDto>>(
+  /// Tìm kiếm môn học có phân trang.
+  /// Admin: Xem tất cả môn học.
+  /// Student, Lecturer: Chỉ xem môn học đang hoạt động.
+  _i2.Future<List<_i4.CourseDto>> searchCourses(
+    String query,
+    int page,
+    int pageSize,
+  ) => caller.callServerEndpoint<List<_i4.CourseDto>>(
+    'course',
+    'searchCourses',
+    {
+      'query': query,
+      'page': page,
+      'pageSize': pageSize,
+    },
+  );
+
+  _i2.Future<_i4.CourseDto> getCourseById(int courseId) =>
+      caller.callServerEndpoint<_i4.CourseDto>(
         'course',
-        'searchCourses',
-        {'query': query},
+        'getCourseById',
+        {'courseId': courseId},
       );
 }
 
