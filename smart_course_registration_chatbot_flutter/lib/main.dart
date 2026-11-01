@@ -6,6 +6,9 @@ import 'package:smart_course_registration_chatbot_client/smart_course_registrati
 import 'app/smart_course_app.dart';
 import 'features/auth/data/f01_auth_gateway.dart';
 
+import 'features/course_lookup/course_lookup_repository_scope.dart';
+import 'features/course_lookup/data/serverpod_course_lookup_repository.dart';
+
 late final Client client;
 late String serverUrl;
 
@@ -24,8 +27,12 @@ Future<void> main() async {
     // Có thể máy chủ đang offline; hiển thị Login thay vì làm sập ứng dụng.
   }
 
-  // Chạy thật: tuyệt đối không dùng DemoAuthController từ entrypoint này.
-  runApp(SmartCourseApp(
-    f01Gateway: ServerpodF01AuthGateway(client),
-  ));
+  runApp(
+  CourseLookupRepositoryScope(
+    repository: ServerpodCourseLookupRepository(client),
+    child: SmartCourseApp(
+      f01Gateway: ServerpodF01AuthGateway(client),
+    ),
+  ),
+);
 }

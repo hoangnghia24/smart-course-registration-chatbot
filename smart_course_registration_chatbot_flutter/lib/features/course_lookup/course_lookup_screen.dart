@@ -15,12 +15,15 @@ class CourseLookupScreen extends StatefulWidget {
     this.studentCode = 'SV001',
     this.program = 'Công nghệ phần mềm',
     this.repository,
+    this.isLiveData = false,
   });
 
   final String studentName;
   final String studentCode;
   final String program;
   final CourseLookupRepository? repository;
+  /// True khi repository lấy dữ liệu từ Serverpod, không hiển thị mock như thật.
+  final bool isLiveData;
 
   @override
   State<CourseLookupScreen> createState() => _CourseLookupScreenState();
@@ -36,6 +39,7 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
   String? _error;
   bool _loading = true;
   int _requestId = 0;
+  Future<CourseInfo>? _detailFuture;
 
   @override
   void initState() {
@@ -72,6 +76,14 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
         _expandedCode = result.any((c) => c.code == _expandedCode)
             ? _expandedCode
             : (result.isEmpty ? null : result.first.code);
+        if (widget.isLiveData && _expandedCode != null) {
+          final course = result.firstWhere((c) => c.code == _expandedCode);
+          _detailFuture = course.id == null
+              ? Future<CourseInfo>.error(StateError('Thiếu ID học phần.'))
+              : (_repository as CourseDetailsRepository).getCourseById(course.id!);
+        } else {
+          _detailFuture = null;
+        }
       });
     } catch (_) {
       if (!mounted || currentRequest != _requestId) return;
@@ -98,6 +110,14 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
   void _setFilter(CourseLookupFilter filter) {
     if (_filter == filter) return;
     _debounce?.cancel();
+    if (widget.isLiveData && filter == CourseLookupFilter.majorOnly) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text('API F03 chưa hỗ trợ lọc học phần theo ngành/CTĐT.'),
+        ));
+      return;
+    }
     _filter = filter;
     _loadCourses();
   }
@@ -193,15 +213,26 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
                     const SizedBox(height: 12),
                     _buildFilters(),
                     const SizedBox(height: 12),
-                    const Text(
-                      'BẢN MẪU • DỮ LIỆU MINH HỌA • CHƯA KẾT NỐI F03',
-                      key: ValueKey('course-demo-label'),
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.mutedText,
+                    if (widget.isLiveData)
+                      const Text(
+                        'DỮ LIỆU F03 TỪ SERVERPOD • TỐI ĐA 50 KẾT QUẢ',
+                        key: ValueKey('course-live-label'),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.mutedText,
+                        ),
+                      )
+                    else
+                      const Text(
+                        'BẢN MẪU • DỮ LIỆU MINH HỌA • CHƯA KẾT NỐI F03',
+                        key: ValueKey('course-demo-label'),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.mutedText,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 15),
                     Row(
                       children: [
@@ -358,7 +389,9 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
       return _StatusCard(
         key: const ValueKey('course-empty'),
         icon: Icons.search_off_rounded,
-        message: 'Không có học phần phù hợp với từ khóa hoặc bộ lọc.',
+        message: widget.isLiveData && _searchController.text.trim().isEmpty
+            ? 'Nhập tên hoặc mã học phần để tra cứu.'
+            : 'Không có học phần phù hợp với từ khóa hoặc bộ lọc.',
         actionLabel: 'Xóa tìm kiếm',
         onAction: _onClearSearch,
       );
@@ -366,24 +399,60 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
     return Column(
       children: [
         for (var i = 0; i < _courses.length; i++) ...[
-          _CourseCard(
-            key: ValueKey('course-card-${_courses[i].code}'),
-            course: _courses[i],
-            expanded: _expandedCode == _courses[i].code,
-            onToggle: () {
-              setState(() {
-                _expandedCode = _expandedCode == _courses[i].code
-                    ? null
-                    : _courses[i].code;
-              });
-            },
-            onShowRules: _showPrerequisiteInformation,
-            onRegister: _showSampleWarning,
-          ),
+          if (widget.isLiveData)
+            _LiveCourseCard(
+              key: ValueKey('course-card-${_courses[i].code}'),
+              course: _courses[i],
+              expanded: _expandedCode == _courses[i].code,
+              detailFuture: _expandedCode == _courses[i].code
+                  ? _detailFuture
+                  : null,
+              onToggle: () => _toggleLiveCourse(_courses[i]),
+              onRetry: () => _fetchLiveDetails(_courses[i]),
+            )
+          else
+            _CourseCard(
+              key: ValueKey('course-card-${_courses[i].code}'),
+              course: _courses[i],
+              expanded: _expandedCode == _courses[i].code,
+              onToggle: () {
+                setState(() {
+                  _expandedCode = _expandedCode == _courses[i].code
+                      ? null
+                      : _courses[i].code;
+                });
+              },
+              onShowRules: _showPrerequisiteInformation,
+              onRegister: _showSampleWarning,
+            ),
           if (i != _courses.length - 1) const SizedBox(height: 12),
         ],
       ],
     );
+  }
+
+  void _toggleLiveCourse(CourseInfo course) {
+    if (_expandedCode == course.code) {
+      setState(() {
+        _expandedCode = null;
+        _detailFuture = null;
+      });
+    } else {
+      setState(() {
+        _expandedCode = course.code;
+        _detailFuture = course.id == null
+            ? Future<CourseInfo>.error(StateError('Thiếu ID học phần.'))
+            : (_repository as CourseDetailsRepository).getCourseById(course.id!);
+      });
+    }
+  }
+
+  void _fetchLiveDetails(CourseInfo course) {
+    setState(() {
+      _detailFuture = course.id == null
+          ? Future<CourseInfo>.error(StateError('Thiếu ID học phần.'))
+          : (_repository as CourseDetailsRepository).getCourseById(course.id!);
+    });
   }
 
   Widget _buildPrerequisiteShortcut() {
@@ -428,6 +497,148 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+/// Thẻ dữ liệu F03 thật: chỉ hiển thị các trường CourseDto được backend cung cấp.
+/// Không bịa trạng thái đã đạt, lớp đang mở, tiên quyết hoặc lịch học.
+class _LiveCourseCard extends StatelessWidget {
+  const _LiveCourseCard({
+    super.key,
+    required this.course,
+    required this.expanded,
+    required this.detailFuture,
+    required this.onToggle,
+    required this.onRetry,
+  });
+
+  final CourseInfo course;
+  final bool expanded;
+  final Future<CourseInfo>? detailFuture;
+  final VoidCallback onToggle;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Material(
+            color: const Color(0xFFF6F9FF),
+            child: InkWell(
+              key: ValueKey('course-live-toggle-${course.code}'),
+              onTap: onToggle,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(15, 12, 12, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(course.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              )),
+                          const SizedBox(height: 5),
+                          Text('Mã môn: ${course.code}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.mutedText,
+                              )),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      children: [
+                        _Tag('${course.credits} TC',
+                            color: AppColors.primary,
+                            background: const Color(0xFFE2EEFF)),
+                        Icon(expanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                            color: AppColors.primary),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 12, 15, 14),
+              child: detailFuture == null
+                  ? const Text('Chưa có thông tin chi tiết học phần.')
+                  : FutureBuilder<CourseInfo>(
+                      future: detailFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                                key: ValueKey('course-detail-loading')),
+                          );
+                        }
+                        if (snapshot.hasError || !snapshot.hasData) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Không tải được chi tiết học phần.'),
+                              TextButton(onPressed: onRetry,
+                                  child: const Text('Thử lại chi tiết')),
+                            ],
+                          );
+                        }
+                        final details = snapshot.data!;
+                        return Column(
+                          key: const ValueKey('course-live-details'),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _Tag(details.isActive == true
+                                  ? 'Môn đang hoạt động' : 'Môn ngừng hoạt động',
+                                color: AppColors.primary,
+                                background: const Color(0xFFE9F1FF)),
+                            const SizedBox(height: 12),
+                            const Text('Mô tả học phần',
+                              style: TextStyle(fontWeight: FontWeight.w700,
+                                  color: AppColors.text)),
+                            const SizedBox(height: 6),
+                            Text(details.description?.trim().isNotEmpty == true
+                                  ? details.description!
+                                  : 'Chưa có mô tả trong cơ sở dữ liệu.',
+                              style: const TextStyle(color: AppColors.mutedText)),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'API F03 chưa cung cấp lớp đang mở, điểm đã đạt '
+                              'và điều kiện tiên quyết.',
+                              style: TextStyle(fontSize: 11,
+                                  color: AppColors.mutedText),
+                            ),
+                            const SizedBox(height: 8),
+                            const SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                onPressed: null,
+                                child: Text('Xem lớp và đăng ký (chưa hỗ trợ)'),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+            ),
+        ],
       ),
     );
   }
@@ -498,7 +709,7 @@ class _CourseHeader extends StatelessWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              '$studentName - $studentCode',
+                              studentCode.isEmpty ? studentName : '$studentName - $studentCode',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
