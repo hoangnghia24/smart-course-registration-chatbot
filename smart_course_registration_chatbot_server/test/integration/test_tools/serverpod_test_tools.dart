@@ -350,21 +350,26 @@ class _CourseEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<List<_i5.CourseDto>> getAllCourses(
+  _i3.Future<List<_i5.CourseDto>> getCoursesPage(
     _i1.TestSessionBuilder sessionBuilder,
+    int page,
+    int pageSize,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
             endpoint: 'course',
-            method: 'getAllCourses',
+            method: 'getCoursesPage',
           );
       try {
         var _localCallContext = await _endpointDispatch.getMethodCallContext(
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'course',
-          methodName: 'getAllCourses',
-          parameters: _i1.testObjectToJson({}),
+          methodName: 'getCoursesPage',
+          parameters: _i1.testObjectToJson({
+            'page': page,
+            'pageSize': pageSize,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -476,6 +481,8 @@ class _CourseEndpoint {
   _i3.Future<List<_i5.CourseDto>> searchCourses(
     _i1.TestSessionBuilder sessionBuilder,
     String query,
+    int page,
+    int pageSize,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -488,7 +495,11 @@ class _CourseEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'course',
           methodName: 'searchCourses',
-          parameters: _i1.testObjectToJson({'query': query}),
+          parameters: _i1.testObjectToJson({
+            'query': query,
+            'page': page,
+            'pageSize': pageSize,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -497,6 +508,37 @@ class _CourseEndpoint {
                   _localCallContext.arguments,
                 )
                 as _i3.Future<List<_i5.CourseDto>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i5.CourseDto> getCourseById(
+    _i1.TestSessionBuilder sessionBuilder,
+    int courseId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'course',
+            method: 'getCourseById',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'course',
+          methodName: 'getCourseById',
+          parameters: _i1.testObjectToJson({'courseId': courseId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i5.CourseDto>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

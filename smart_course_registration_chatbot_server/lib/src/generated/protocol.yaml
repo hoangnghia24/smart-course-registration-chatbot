@@ -5,11 +5,12 @@ adminAccount:
   - checkAccess:
   - setActive:
 course:
-  - getAllCourses:
+  - getCoursesPage:
   - createCourse:
   - updateCourse:
   - deleteCourse:
   - searchCourses:
+  - getCourseById:
 emailIdp:
   - login:
   - startRegistration:

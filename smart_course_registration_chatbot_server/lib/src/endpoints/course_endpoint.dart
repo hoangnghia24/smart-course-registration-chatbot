@@ -302,49 +302,46 @@ class CourseEndpoint extends Endpoint {
         .toList();
   }
 
-  
-Future<CourseDto> getCourseById(
-  Session session,
-  int courseId,
-) async {
-  final account = await AccountGuard.requireRole(
-    session,
-    allowedRoles: {
-      AccountRole.admin,
-      AccountRole.student,
-      AccountRole.lecturer,
-    },
-  );
+  Future<CourseDto> getCourseById(
+    Session session,
+    int courseId,
+  ) async {
+    final account = await AccountGuard.requireRole(
+      session,
+      allowedRoles: {
+        AccountRole.admin,
+        AccountRole.student,
+        AccountRole.lecturer,
+      },
+    );
 
-  if (courseId <= 0) {
-    throw AppException(
-      code: 'INVALID_COURSE_ID',
-      message: 'ID môn học không hợp lệ.',
+    if (courseId <= 0) {
+      throw AppException(
+        code: 'INVALID_COURSE_ID',
+        message: 'ID môn học không hợp lệ.',
+      );
+    }
+
+    final course = await Course.db.findById(
+      session,
+      courseId,
+    );
+
+    if (course == null ||
+        (account.role != AccountRole.admin && !course.isActive)) {
+      throw AppException(
+        code: 'COURSE_NOT_FOUND',
+        message: 'Không tìm thấy môn học.',
+      );
+    }
+
+    return CourseDto(
+      id: course.id,
+      code: course.code,
+      name: course.name,
+      credits: course.credits,
+      description: course.description,
+      isActive: course.isActive,
     );
   }
-
-  final course = await Course.db.findById(
-    session,
-    courseId,
-  );
-
-  if (course == null ||
-      (account.role != AccountRole.admin &&
-          !course.isActive)) {
-    throw AppException(
-      code: 'COURSE_NOT_FOUND',
-      message: 'Không tìm thấy môn học.',
-    );
-  }
-
-  return CourseDto(
-    id: course.id,
-    code: course.code,
-    name: course.name,
-    credits: course.credits,
-    description: course.description,
-    isActive: course.isActive,
-  );
-}
-
 }

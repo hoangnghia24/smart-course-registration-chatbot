@@ -151,15 +151,30 @@ class Endpoints extends _i1.EndpointDispatch {
       name: 'course',
       endpoint: endpoints['course']!,
       methodConnectors: {
-        'getAllCourses': _i1.MethodConnector(
-          name: 'getAllCourses',
-          params: {},
+        'getCoursesPage': _i1.MethodConnector(
+          name: 'getCoursesPage',
+          params: {
+            'page': _i1.ParameterDescription(
+              name: 'page',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'pageSize': _i1.ParameterDescription(
+              name: 'pageSize',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
           call:
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['course'] as _i4.CourseEndpoint)
-                  .getAllCourses(session),
+              ) async =>
+                  (endpoints['course'] as _i4.CourseEndpoint).getCoursesPage(
+                    session,
+                    params['page'],
+                    params['pageSize'],
+                  ),
         ),
         'createCourse': _i1.MethodConnector(
           name: 'createCourse',
@@ -226,6 +241,16 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'page': _i1.ParameterDescription(
+              name: 'page',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'pageSize': _i1.ParameterDescription(
+              name: 'pageSize',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
           },
           call:
               (
@@ -235,6 +260,27 @@ class Endpoints extends _i1.EndpointDispatch {
                   (endpoints['course'] as _i4.CourseEndpoint).searchCourses(
                     session,
                     params['query'],
+                    params['page'],
+                    params['pageSize'],
+                  ),
+        ),
+        'getCourseById': _i1.MethodConnector(
+          name: 'getCourseById',
+          params: {
+            'courseId': _i1.ParameterDescription(
+              name: 'courseId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['course'] as _i4.CourseEndpoint).getCourseById(
+                    session,
+                    params['courseId'],
                   ),
         ),
       },
