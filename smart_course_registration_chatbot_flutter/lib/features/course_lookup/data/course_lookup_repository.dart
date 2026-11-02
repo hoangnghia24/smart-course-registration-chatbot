@@ -1,8 +1,7 @@
 /// Hợp đồng dữ liệu của màn hình F03.
 ///
-/// Chưa gọi Serverpod: gói bàn giao 24/10/2026 chỉ có F01 (Auth).
-/// Khi BE giao generated client F03, triển khai một repository mới và
-/// truyền vào CourseLookupScreen(repository: ...) thay vì đoán endpoint.
+/// F03 có hai nguồn: bản mẫu phục vụ test Figma và Serverpod RPC thật.
+/// Chỉ hiển thị dữ liệu học tập cá nhân/lớp học khi có API xác minh.
 enum CourseLookupFilter { all, majorOnly, threeCredits }
 
 class CourseClassInfo {
@@ -29,6 +28,9 @@ class CourseInfo {
     required this.isCompleted,
     this.sampleGrade,
     this.classes = const [],
+    this.id,
+    this.description,
+    this.isActive,
   });
 
   final String code;
@@ -38,6 +40,9 @@ class CourseInfo {
   final bool isCompleted;
   final double? sampleGrade;
   final List<CourseClassInfo> classes;
+  final int? id;
+  final String? description;
+  final bool? isActive;
 }
 
 abstract class CourseLookupRepository {
@@ -45,6 +50,12 @@ abstract class CourseLookupRepository {
     required String query,
     required CourseLookupFilter filter,
   });
+
+}
+
+/// Giao diện tùy chọn cho API chi tiết F03-02, không ảnh hưởng các test demo cũ.
+abstract class CourseDetailsRepository {
+  Future<CourseInfo> getCourseById(int courseId);
 }
 
 /// DỮ LIỆU MINH HỌA CỦA FIGMA, KHÔNG LẤY TỪ CƠ SỞ DỮ LIỆU.
