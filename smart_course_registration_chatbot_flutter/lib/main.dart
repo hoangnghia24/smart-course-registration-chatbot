@@ -9,6 +9,9 @@ import 'features/auth/data/f01_auth_gateway.dart';
 import 'features/course_lookup/course_lookup_repository_scope.dart';
 import 'features/course_lookup/data/serverpod_course_lookup_repository.dart';
 
+import 'features/curriculum_lookup/curriculum_lookup_repository_scope.dart';
+import 'features/curriculum_lookup/data/serverpod_curriculum_lookup_repository.dart';
+
 late final Client client;
 late String serverUrl;
 
@@ -28,10 +31,13 @@ Future<void> main() async {
   }
 
   runApp(
-  CourseLookupRepositoryScope(
-    repository: ServerpodCourseLookupRepository(client),
-    child: SmartCourseApp(
-      f01Gateway: ServerpodF01AuthGateway(client),
+  CurriculumLookupRepositoryScope(
+    repository: ServerpodCurriculumLookupRepository(client),
+    child: CourseLookupRepositoryScope(
+      repository: ServerpodCourseLookupRepository(client),
+      child: SmartCourseApp(
+        f01Gateway: ServerpodF01AuthGateway(client),
+      ), 
     ),
   ),
 );

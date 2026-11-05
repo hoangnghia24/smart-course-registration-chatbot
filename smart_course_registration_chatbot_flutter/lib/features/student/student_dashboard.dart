@@ -5,6 +5,7 @@ import '../../core/widgets/dashboard_widgets.dart';
 import '../../data/mock/mock_dashboard_data.dart';
 import '../chat/chatbot_figma_screen.dart';
 import '../course_lookup/course_lookup_quick_access.dart';
+import '../curriculum_lookup/curriculum_lookup_quick_access.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key, this.onSignOut});
@@ -77,6 +78,7 @@ class StudentDashboard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const SectionTitle(title: 'Chức năng nhanh'),
+          const CurriculumLookupQuickAccess(),
           const SizedBox(height: 10),
           CourseLookupQuickAccess(
             studentName: data.name,
