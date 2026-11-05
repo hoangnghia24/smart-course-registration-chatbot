@@ -1,0 +1,16 @@
+
+class: CurriculumGroup
+table: app_curriculum_group
+
+fields:
+  curriculumVersionId: int, relation(parent=app_curriculum_version)
+  groupCode: String
+  groupName: String
+  groupOrder: int
+
+indexes:
+  curriculum_group_version_code_unique_idx:
+    fields: curriculumVersionId, groupCode
+    unique: true
+  curriculum_group_version_order_idx:
+    fields: curriculumVersionId, groupOrder

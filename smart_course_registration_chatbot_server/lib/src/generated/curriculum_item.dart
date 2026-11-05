@@ -21,6 +21,8 @@ abstract class CurriculumItem
     required this.courseId,
     required this.semester,
     required this.isRequired,
+    this.groupId,
+    this.itemOrder,
   });
 
   factory CurriculumItem({
@@ -29,6 +31,8 @@ abstract class CurriculumItem
     required int courseId,
     required int semester,
     required bool isRequired,
+    int? groupId,
+    int? itemOrder,
   }) = _CurriculumItemImpl;
 
   factory CurriculumItem.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -40,6 +44,8 @@ abstract class CurriculumItem
       isRequired: _i1.BoolJsonExtension.fromJson(
         jsonSerialization['isRequired'],
       ),
+      groupId: jsonSerialization['groupId'] as int?,
+      itemOrder: jsonSerialization['itemOrder'] as int?,
     );
   }
 
@@ -58,6 +64,10 @@ abstract class CurriculumItem
 
   bool isRequired;
 
+  int? groupId;
+
+  int? itemOrder;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -70,6 +80,8 @@ abstract class CurriculumItem
     int? courseId,
     int? semester,
     bool? isRequired,
+    int? groupId,
+    int? itemOrder,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -80,6 +92,8 @@ abstract class CurriculumItem
       'courseId': courseId,
       'semester': semester,
       'isRequired': isRequired,
+      if (groupId != null) 'groupId': groupId,
+      if (itemOrder != null) 'itemOrder': itemOrder,
     };
   }
 
@@ -127,12 +141,16 @@ class _CurriculumItemImpl extends CurriculumItem {
     required int courseId,
     required int semester,
     required bool isRequired,
+    int? groupId,
+    int? itemOrder,
   }) : super._(
          id: id,
          curriculumVersionId: curriculumVersionId,
          courseId: courseId,
          semester: semester,
          isRequired: isRequired,
+         groupId: groupId,
+         itemOrder: itemOrder,
        );
 
   /// Returns a shallow copy of this [CurriculumItem]
@@ -145,6 +163,8 @@ class _CurriculumItemImpl extends CurriculumItem {
     int? courseId,
     int? semester,
     bool? isRequired,
+    Object? groupId = _Undefined,
+    Object? itemOrder = _Undefined,
   }) {
     return CurriculumItem(
       id: id is int? ? id : this.id,
@@ -152,6 +172,8 @@ class _CurriculumItemImpl extends CurriculumItem {
       courseId: courseId ?? this.courseId,
       semester: semester ?? this.semester,
       isRequired: isRequired ?? this.isRequired,
+      groupId: groupId is int? ? groupId : this.groupId,
+      itemOrder: itemOrder is int? ? itemOrder : this.itemOrder,
     );
   }
 }
@@ -178,6 +200,16 @@ class CurriculumItemUpdateTable extends _i1.UpdateTable<CurriculumItemTable> {
     table.isRequired,
     value,
   );
+
+  _i1.ColumnValue<int, int> groupId(int? value) => _i1.ColumnValue(
+    table.groupId,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> itemOrder(int? value) => _i1.ColumnValue(
+    table.itemOrder,
+    value,
+  );
 }
 
 class CurriculumItemTable extends _i1.Table<int?> {
@@ -200,6 +232,14 @@ class CurriculumItemTable extends _i1.Table<int?> {
       'isRequired',
       this,
     );
+    groupId = _i1.ColumnInt(
+      'groupId',
+      this,
+    );
+    itemOrder = _i1.ColumnInt(
+      'itemOrder',
+      this,
+    );
   }
 
   late final CurriculumItemUpdateTable updateTable;
@@ -212,6 +252,10 @@ class CurriculumItemTable extends _i1.Table<int?> {
 
   late final _i1.ColumnBool isRequired;
 
+  late final _i1.ColumnInt groupId;
+
+  late final _i1.ColumnInt itemOrder;
+
   @override
   List<_i1.Column> get columns => [
     id,
@@ -219,6 +263,8 @@ class CurriculumItemTable extends _i1.Table<int?> {
     courseId,
     semester,
     isRequired,
+    groupId,
+    itemOrder,
   ];
 }
 

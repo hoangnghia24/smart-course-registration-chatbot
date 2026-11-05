@@ -1,0 +1,62 @@
+
+### Enrollment
+### Luu thong tin dang ky, lich su hoc va ket qua hoc tap
+
+class: Enrollment
+table: app_enrollment
+serverOnly: true
+
+fields:
+  ### Sinh vien dang ky
+  studentId: int, relation(parent=app_student, onDelete=Restrict)
+
+  ### Lop hoc phan duoc dang ky
+  sectionId: int, relation(parent=app_course_section, onDelete=Restrict)
+
+  ### Loai dang ky
+  ### REGULAR, IMPROVEMENT
+  enrollmentType: String
+
+  ### Trang thai dang ky
+  ### ENROLLED, CANCELLED, SECTION_CANCELLED, COMPLETED
+  status: String
+
+  ### Thoi gian dang ky
+  registeredAt: DateTime
+
+  ### Thoi gian huy dang ky
+  cancelledAt: DateTime?
+
+  ### Diem so
+  score: double?
+
+  ### Trang thai cong bo diem
+  ### NOT_ENTERED, DRAFT, FINALIZED, PUBLISHED
+  gradeStatus: String
+
+  ### Ket qua hoc tap
+  ### PENDING, PASSED, FAILED
+  resultStatus: String
+
+  ### Thoi gian cong bo diem
+  publishedAt: DateTime?
+
+  ### Giang vien nhap diem
+  enteredByLecturerId: int?, relation(parent=app_lecturer, onDelete=Restrict)
+
+indexes:
+  ### Tim lich su hoc tap cua sinh vien
+  enrollment_student_status_idx:
+    fields: studentId, status
+
+  ### Tim sinh vien trong lop hoc phan
+  enrollment_section_status_idx:
+    fields: sectionId, status
+
+  ### Kiem tra sinh vien dang ky lop
+  enrollment_student_section_idx:
+    fields: studentId, sectionId
+
+  ### Toi uu tra cuu ket qua da cong bo
+  enrollment_student_grade_idx:
+    fields: studentId, gradeStatus, publishedAt

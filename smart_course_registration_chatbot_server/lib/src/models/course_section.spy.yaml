@@ -1,0 +1,42 @@
+class: CourseSection
+table: app_course_section
+
+fields:
+  ### Mon hoc duoc mo lop
+  courseId: int, relation(parent=app_course)
+
+  ### Hoc ky mo lop
+  termId: int, relation(parent=app_academic_term)
+
+  ### Giang vien duoc phan cong
+  lecturerId: int, relation(parent=app_lecturer)
+
+  ### Ma lop hoc phan
+  sectionCode: String
+
+  ### Si so toi da
+  capacity: int
+
+  ### Si so toi thieu de mo lop
+  minimumEnrollment: int?
+
+  ### Trang thai lop hoc phan
+  ### DRAFT, OPEN, CLOSED, CANCELLED, COMPLETED
+  status: String
+
+  ### Thoi gian tao lop
+  createdAt: DateTime
+
+indexes:
+  ### Ma lop khong trung trong cung hoc ky
+  course_section_term_code_unique_idx:
+    fields: termId, sectionCode
+    unique: true
+
+  ### Toi uu tim lop theo mon va hoc ky
+  course_section_course_term_idx:
+    fields: courseId, termId
+
+  ### Toi uu truy van lop theo giang vien
+  course_section_lecturer_term_idx:
+    fields: lecturerId, termId

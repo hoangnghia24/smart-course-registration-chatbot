@@ -3,3 +3,9 @@ fields:
   course: CourseItemDto
   semester: int
   isRequired: bool
+
+  groupCode: String?
+  groupName: String?
+  groupOrder: int?
+  itemOrder: int?
+  
