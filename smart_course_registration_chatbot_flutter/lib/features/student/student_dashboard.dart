@@ -6,6 +6,7 @@ import '../../data/mock/mock_dashboard_data.dart';
 import '../chat/chatbot_figma_screen.dart';
 import '../course_lookup/course_lookup_quick_access.dart';
 import '../curriculum_lookup/curriculum_lookup_quick_access.dart';
+import '../academic_progress/academic_progress_quick_access.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key, this.onSignOut});
@@ -78,8 +79,17 @@ class StudentDashboard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const SectionTitle(title: 'Chức năng nhanh'),
+          const SizedBox(height: 10),
+
+          // F04 - Chương trình đào tạo
           const CurriculumLookupQuickAccess(),
           const SizedBox(height: 10),
+
+          // F23 - Tiến độ học tập
+          const AcademicProgressQuickAccess(),
+          const SizedBox(height: 10),
+
+          // F03 - Tra cứu học phần
           CourseLookupQuickAccess(
             studentName: data.name,
             studentCode: data.studentId,
