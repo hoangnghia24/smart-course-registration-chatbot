@@ -1,0 +1,19 @@
+
+class: AcademicTerm
+table: app_academic_term
+
+fields:
+  academicYear: String
+
+  termName: String
+
+  # Trang thai hoc ky:
+  # PLANNED, ACTIVE, CLOSED, COMPLETED
+  status: String
+
+  maxCreditsPerTerm: double
+
+indexes:
+  academic_term_year_name_unique_idx:
+    fields: academicYear, termName
+    unique: true

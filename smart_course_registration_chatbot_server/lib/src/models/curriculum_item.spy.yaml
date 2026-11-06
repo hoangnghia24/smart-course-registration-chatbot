@@ -7,8 +7,10 @@ fields:
   courseId: int, relation(parent=app_course)
   semester: int
   isRequired: bool
-
+  groupId: int?, relation(parent=app_curriculum_group)
+  itemOrder: int?
 indexes:
   app_curriculum_item_unique:
     fields: curriculumVersionId, courseId
     unique: true
+  

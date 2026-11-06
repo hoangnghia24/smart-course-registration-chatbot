@@ -22,12 +22,20 @@ abstract class CurriculumItemDetailDto
     required this.course,
     required this.semester,
     required this.isRequired,
+    this.groupCode,
+    this.groupName,
+    this.groupOrder,
+    this.itemOrder,
   });
 
   factory CurriculumItemDetailDto({
     required _i2.CourseItemDto course,
     required int semester,
     required bool isRequired,
+    String? groupCode,
+    String? groupName,
+    int? groupOrder,
+    int? itemOrder,
   }) = _CurriculumItemDetailDtoImpl;
 
   factory CurriculumItemDetailDto.fromJson(
@@ -41,6 +49,10 @@ abstract class CurriculumItemDetailDto
       isRequired: _i1.BoolJsonExtension.fromJson(
         jsonSerialization['isRequired'],
       ),
+      groupCode: jsonSerialization['groupCode'] as String?,
+      groupName: jsonSerialization['groupName'] as String?,
+      groupOrder: jsonSerialization['groupOrder'] as int?,
+      itemOrder: jsonSerialization['itemOrder'] as int?,
     );
   }
 
@@ -50,6 +62,14 @@ abstract class CurriculumItemDetailDto
 
   bool isRequired;
 
+  String? groupCode;
+
+  String? groupName;
+
+  int? groupOrder;
+
+  int? itemOrder;
+
   /// Returns a shallow copy of this [CurriculumItemDetailDto]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -57,6 +77,10 @@ abstract class CurriculumItemDetailDto
     _i2.CourseItemDto? course,
     int? semester,
     bool? isRequired,
+    String? groupCode,
+    String? groupName,
+    int? groupOrder,
+    int? itemOrder,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -65,6 +89,10 @@ abstract class CurriculumItemDetailDto
       'course': course.toJson(),
       'semester': semester,
       'isRequired': isRequired,
+      if (groupCode != null) 'groupCode': groupCode,
+      if (groupName != null) 'groupName': groupName,
+      if (groupOrder != null) 'groupOrder': groupOrder,
+      if (itemOrder != null) 'itemOrder': itemOrder,
     };
   }
 
@@ -75,6 +103,10 @@ abstract class CurriculumItemDetailDto
       'course': course.toJsonForProtocol(),
       'semester': semester,
       'isRequired': isRequired,
+      if (groupCode != null) 'groupCode': groupCode,
+      if (groupName != null) 'groupName': groupName,
+      if (groupOrder != null) 'groupOrder': groupOrder,
+      if (itemOrder != null) 'itemOrder': itemOrder,
     };
   }
 
@@ -84,15 +116,25 @@ abstract class CurriculumItemDetailDto
   }
 }
 
+class _Undefined {}
+
 class _CurriculumItemDetailDtoImpl extends CurriculumItemDetailDto {
   _CurriculumItemDetailDtoImpl({
     required _i2.CourseItemDto course,
     required int semester,
     required bool isRequired,
+    String? groupCode,
+    String? groupName,
+    int? groupOrder,
+    int? itemOrder,
   }) : super._(
          course: course,
          semester: semester,
          isRequired: isRequired,
+         groupCode: groupCode,
+         groupName: groupName,
+         groupOrder: groupOrder,
+         itemOrder: itemOrder,
        );
 
   /// Returns a shallow copy of this [CurriculumItemDetailDto]
@@ -103,11 +145,19 @@ class _CurriculumItemDetailDtoImpl extends CurriculumItemDetailDto {
     _i2.CourseItemDto? course,
     int? semester,
     bool? isRequired,
+    Object? groupCode = _Undefined,
+    Object? groupName = _Undefined,
+    Object? groupOrder = _Undefined,
+    Object? itemOrder = _Undefined,
   }) {
     return CurriculumItemDetailDto(
       course: course ?? this.course.copyWith(),
       semester: semester ?? this.semester,
       isRequired: isRequired ?? this.isRequired,
+      groupCode: groupCode is String? ? groupCode : this.groupCode,
+      groupName: groupName is String? ? groupName : this.groupName,
+      groupOrder: groupOrder is int? ? groupOrder : this.groupOrder,
+      itemOrder: itemOrder is int? ? itemOrder : this.itemOrder,
     );
   }
 }

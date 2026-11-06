@@ -1,0 +1,28 @@
+
+### F23 - Tong hop tien do hoc tap
+class: AcademicProgressDto
+
+fields:
+  ### Phien ban CTDT cua sinh vien
+  curriculumVersionId: int
+
+  ### Tong tin chi CTDT yeu cau
+  totalCredits: double?
+
+  ### Tin chi da duoc cong nhan
+  earnedCredits: double?
+
+  ### Tin chi con thieu
+  remainingCredits: double?
+
+  ### CONFIRMED, POLICY_PENDING
+  creditStatus: String
+
+  ### Diem trung binh tich luy
+  gpa: double?
+
+  ### AVAILABLE, NO_DATA, POLICY_PENDING
+  gpaStatus: String
+
+  ### Danh sach tien do tung hoc phan
+  courses: List<AcademicCourseProgressDto>
