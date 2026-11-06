@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'data/curriculum_lookup_repository.dart';
+import '../../core/widgets/shared_app_header.dart';
 
 /// Màu lấy theo SVG Figma F04 do HAN cung cấp (390 x 844).
 class _Palette {
@@ -89,95 +90,18 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
       backgroundColor: _Palette.background,
       body: Column(
         children: [
-          _buildBlueHeader(context),
+          SharedAppHeader.academic(
+            sectionTitle: 'CHƯƠNG TRÌNH ĐÀO TẠO',
+            identityLine: widget.studentDisplayName?.trim().isNotEmpty == true
+                ? widget.studentDisplayName!.trim()
+                : 'Sinh viên đang đăng nhập',
+            detail: widget.studentIdentifier?.trim(),
+            leadingIcon: Icons.arrow_back_rounded,
+            leadingKey: const ValueKey('f04-back'),
+            onLeading: () => Navigator.of(context).maybePop(),
+          ),
           Expanded(child: _buildContent()),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBlueHeader(BuildContext context) {
-    final name = widget.studentDisplayName?.trim();
-    final id = widget.studentIdentifier?.trim();
-    return Container(
-      width: double.infinity,
-      color: _Palette.primary,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 19),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'CHƯƠNG TRÌNH ĐÀO TẠO',
-                style: TextStyle(
-                  color: Color(0xFFCFDFFF),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: .45,
-                ),
-              ),
-              const SizedBox(height: 13),
-              Row(
-                children: [
-                  IconButton(
-                    key: const ValueKey('f04-back'),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.only(right: 12),
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                    tooltip: 'Quay lại',
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'HCM-UTE',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          name != null && name.isNotEmpty
-                              ? name
-                              : 'Sinh viên đang đăng nhập',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (id != null && id.isNotEmpty)
-                          Text(
-                            id,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFFCFDFFF),
-                              fontSize: 12,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Color(0xFF3272C7),
-                    child: Icon(Icons.person_outline_rounded,
-                        color: Colors.white, size: 26),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

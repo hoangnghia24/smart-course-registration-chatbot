@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/shared_app_header.dart';
 
+/// Các trạng thái CHỈ để kiểm tra UI tuần 5.
+/// Không phản ánh kết nối mạng hoặc phản hồi AI thực tế.
 enum ChatbotPreviewState {
   initial,
   loading,
@@ -11,6 +14,9 @@ enum ChatbotPreviewState {
   offline,
 }
 
+/// Màn hình được dựng lại từ SVG Figma 390 x 844 của HAN.
+/// Toàn bộ nội dung hội thoại/lớp học hiện tại là dữ liệu minh họa.
+/// Không thực hiện API, đăng ký học phần hoặc xác thực dữ liệu học tập.
 class ChatbotFigmaScreen extends StatefulWidget {
   const ChatbotFigmaScreen({super.key});
 
@@ -88,68 +94,62 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
           children: [
             _buildHeader(context),
             Expanded(
-              // Prototype có ít tin nhắn tĩnh: dựng sẵn nội dung để các
-              // trạng thái và thẻ môn học luôn tồn tại trong cây Widget,
-              // kể cả khi nằm ngoài vùng màn hình. Vẫn cuộn dọc bình thường.
-              child: SingleChildScrollView(
+              child: ListView(
                 key: const Key('chatbot_conversation_list'),
                 controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(8, 14, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildDateLabel(),
+                children: [
+                  _buildDateLabel(),
+                  const SizedBox(height: 16),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 36, bottom: 8),
+                    child: Text(
+                      'NỘI DUNG MINH HỌA · CHƯA KẾT NỐI AI',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        color: _muted,
+                      ),
+                    ),
+                  ),
+                  _assistantBubble(
+                    child: const Text(
+                      'Chào Nguyên! Mình có thể giúp gì cho bạn trong quá trình đăng ký học phần học kỳ này?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.45,
+                        color: _darkText,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildSuggestion(
+                    icon: Icons.auto_awesome,
+                    text: 'Gợi ý môn chuyên ngành cho mình',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSuggestion(
+                    icon: Icons.help_outline_rounded,
+                    text: 'Tại sao mình không đăng ký được AI?',
+                  ),
+                  const SizedBox(height: 14),
+                  _buildUserSampleMessage(),
+                  const SizedBox(height: 14),
+                  _assistantBubble(child: _buildSampleRecommendation()),
+                  const SizedBox(height: 10),
+                  _buildClassCard(),
+                  const SizedBox(height: 14),
+                  _buildPaginationDots(),
+                  if (_lastQuestion != null) ...[
                     const SizedBox(height: 16),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 36, bottom: 8),
-                      child: Text(
-                        'NỘI DUNG MINH HỌA · CHƯA KẾT NỐI AI',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: _muted,
-                        ),
-                      ),
-                    ),
-                    _assistantBubble(
-                      child: const Text(
-                        'Chào Nguyên! Mình có thể giúp gì cho bạn trong quá trình đăng ký học phần học kỳ này?',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.45,
-                          color: _darkText,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildSuggestion(
-                      icon: Icons.auto_awesome,
-                      text: 'Gợi ý môn chuyên ngành cho mình',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildSuggestion(
-                      icon: Icons.help_outline_rounded,
-                      text: 'Tại sao mình không đăng ký được AI?',
-                    ),
-                    const SizedBox(height: 14),
-                    _buildUserSampleMessage(),
-                    const SizedBox(height: 14),
-                    _assistantBubble(child: _buildSampleRecommendation()),
-                    const SizedBox(height: 10),
-                    _buildClassCard(),
-                    const SizedBox(height: 14),
-                    _buildPaginationDots(),
-                    if (_lastQuestion != null) ...[
-                      const SizedBox(height: 16),
-                      _buildUserMessage(_lastQuestion!),
-                    ],
-                    if (_previewState != ChatbotPreviewState.initial) ...[
-                      const SizedBox(height: 12),
-                      _assistantBubble(child: _buildStateContent()),
-                    ],
+                    _buildUserMessage(_lastQuestion!),
                   ],
-                ),
+                  if (_previewState != ChatbotPreviewState.initial) ...[
+                    const SizedBox(height: 12),
+                    _assistantBubble(child: _buildStateContent()),
+                  ],
+                ],
               ),
             ),
             _buildComposer(),
@@ -160,83 +160,24 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Container(
-      height: 110,
-      padding: const EdgeInsets.fromLTRB(6, 18, 12, 14),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE7EBF2))),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            key: const Key('chatbot_back_button'),
-            tooltip: 'Quay lại',
-            onPressed: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              } else {
-                _showNonOperationalNotice('Đây là bản xem trước màn hình.');
-              }
-            },
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: _darkText,
-              size: 21,
-            ),
-          ),
-          const _StarAvatar(size: 44),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Trợ lý AI Đăng ký',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 19,
-                    letterSpacing: -0.5,
-                    color: _darkText,
-                  ),
-                ),
-                SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFFB57817), size: 8),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Bản mẫu · Chưa kết nối AI',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF986B20),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          PopupMenuButton<ChatbotPreviewState>(
+    return SharedAppHeader.assistant(
+      title: 'Trợ lý AI Đăng ký',
+      status: 'Bản mẫu · Chưa kết nối AI',
+      avatar: const _StarAvatar(size: 44),
+      leadingKey: const Key('chatbot_back_button'),
+      onLeading: () {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          _showNonOperationalNotice('Đây là bản xem trước màn hình.');
+        }
+      },
+      trailing: PopupMenuButton<ChatbotPreviewState>(
             key: const Key('chatbot_state_menu'),
             tooltip: 'Xem trạng thái kiểm thử',
             icon: const Icon(Icons.more_vert_rounded, color: _muted),
             onSelected: (value) {
               setState(() => _previewState = value);
-              // Hiện trạng thái vừa chọn ở cuối hội thoại mà không cần kéo tay.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted || !_scrollController.hasClients) return;
-                _scrollController.jumpTo(
-                  _scrollController.position.maxScrollExtent,
-                );
-              });
             },
             itemBuilder: (_) => const [
               PopupMenuItem(
@@ -265,8 +206,6 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
               ),
             ],
           ),
-        ],
-      ),
     );
   }
 
