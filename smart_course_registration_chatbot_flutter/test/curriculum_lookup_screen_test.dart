@@ -32,6 +32,10 @@ const _testCurriculum = CurriculumDetails(
       credits: 3,
       semester: 1,
       isRequired: true,
+      groupCode: 'DC',
+      groupName: 'Khối kiến thức đại cương',
+      groupOrder: 1,
+      itemOrder: 1,
     ),
     CurriculumCourse(
       code: 'CS102',
@@ -39,6 +43,10 @@ const _testCurriculum = CurriculumDetails(
       credits: 4,
       semester: 1,
       isRequired: false,
+      groupCode: 'CSN',
+      groupName: 'Khối kiến thức cơ sở ngành',
+      groupOrder: 2,
+      itemOrder: 1,
     ),
     CurriculumCourse(
       code: 'CS103',
@@ -46,6 +54,10 @@ const _testCurriculum = CurriculumDetails(
       credits: 3,
       semester: 2,
       isRequired: true,
+      groupCode: 'CSN',
+      groupName: 'Khối kiến thức cơ sở ngành',
+      groupOrder: 2,
+      itemOrder: 2,
     ),
   ],
 );
@@ -68,9 +80,9 @@ void main() {
 
     expect(find.text('Công nghệ thông tin'), findsOneWidget);
     expect(find.text('Bản 2026'), findsOneWidget);
-    expect(find.text('Học kỳ 1'), findsOneWidget);
+    expect(find.text('Khối kiến thức đại cương'), findsOneWidget);
     expect(find.text('Nhập môn lập trình'), findsOneWidget);
-    expect(find.textContaining('CS101 · 3 TC · Bắt buộc'), findsOneWidget);
+    expect(find.textContaining('CS101 · 3 TC · Bắt buộc · HK 1'), findsOneWidget);
     expect(find.byKey(const ValueKey('f04-progress-placeholder')),
         findsOneWidget);
     expect(find.text('Chưa có dữ liệu tiến độ học tập'), findsOneWidget);
@@ -82,6 +94,8 @@ void main() {
 
     await tester.tap(find.text('Tự chọn'));
     await tester.pumpAndSettle();
+    // Khối tự chọn phải tự mở khi là khối đầu tiên của bộ lọc.
+    expect(find.byKey(const ValueKey('f04-group-group:CSN')), findsOneWidget);
     expect(find.text('Cấu trúc dữ liệu'), findsOneWidget);
     expect(find.text('Nhập môn lập trình'), findsNothing);
     expect(find.byKey(const ValueKey('f04-filter-bar')), findsOneWidget);
@@ -134,6 +148,51 @@ void main() {
     expect(find.byKey(const ValueKey('f04-error')), findsOneWidget);
     expect(find.textContaining('không có quyền'), findsOneWidget);
     expect(find.text('Công nghệ thông tin'), findsNothing);
+  });
+
+  testWidgets('F04 nhóm theo khối kiến thức và không gộp theo học kỳ',
+      (tester) async {
+    await _render(tester, _FakeRepository(() async => _testCurriculum));
+    expect(find.text('Khối kiến thức đại cương'), findsOneWidget);
+    expect(find.byKey(const ValueKey('f04-group-group:DC')), findsOneWidget);
+    // ListView chỉ dựng những mục đang gần vùng nhìn thấy; khối thứ hai
+    // có thể chưa được dựng, nên cần cuộn tới nó trước khi tìm tên.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('f04-group-group:CSN')),
+      160,
+      scrollable: find.byType(Scrollable).first,
+      maxScrolls: 12,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Khối kiến thức cơ sở ngành'), findsOneWidget);
+    expect(find.byKey(const ValueKey('f04-group-group:CSN')), findsOneWidget);
+    await tester.tap(find.text('Khối kiến thức cơ sở ngành'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cơ sở dữ liệu'), findsOneWidget);
+  });
+
+  testWidgets('F04 chưa có nhóm thì hiện chú thích không tự đoán nhóm',
+      (tester) async {
+    const noGroup = CurriculumDetails(
+      code: 'CNTT',
+      name: 'Công nghệ thông tin',
+      majorCode: '7480201',
+      versionCode: '2026',
+      effectiveYear: 2026,
+      versionStatus: 'published',
+      items: [
+        CurriculumCourse(
+          code: 'CS999',
+          name: 'Học phần chưa phân nhóm',
+          credits: 2,
+          semester: 3,
+          isRequired: true,
+        ),
+      ],
+    );
+    await _render(tester, _FakeRepository(() async => noGroup));
+    expect(find.text('Học kỳ 3 (chưa phân nhóm)'), findsOneWidget);
+    expect(find.text('Học phần chưa phân nhóm'), findsOneWidget);
   });
 
   testWidgets('F04 lỗi mạng và thử lại thành công', (tester) async {

@@ -221,17 +221,41 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
         _CourseFilter.elective => !course.isRequired,
       };
     }).toList()
-      ..sort((a, b) {
-        final semesterCompare = a.semester.compareTo(b.semester);
-        return semesterCompare != 0
-            ? semesterCompare
-            : a.code.compareTo(b.code);
-      });
+      ..sort(_compareByKnowledgeGroup);
 
-    final groups = <int, List<CurriculumCourse>>{};
+    // Dùng groupCode/groupName thực từ API. Nếu thiếu, chỉ dựa vào semester
+    // được API trả về làm NHÓM DỰ PHÒNG và ghi rõ "chưa phân nhóm".
+    final groupMap = <String, _KnowledgeGroup>{};
     for (final course in courses) {
-      groups.putIfAbsent(course.semester, () => []).add(course);
+      final code = (course.groupCode ?? '').trim();
+      final name = (course.groupName ?? '').trim();
+      final hasGroup = code.isNotEmpty || name.isNotEmpty;
+      final id = hasGroup
+          ? 'group:${code.isNotEmpty ? code : name}'
+          : 'semester:${course.semester}';
+      final title = hasGroup
+          ? (name.isNotEmpty ? name : code)
+          : (course.semester > 0
+              ? 'Học kỳ ${course.semester} (chưa phân nhóm)'
+              : 'Chưa phân nhóm kiến thức');
+      groupMap.putIfAbsent(
+        id,
+        () => _KnowledgeGroup(
+          id: id,
+          title: title,
+          order: course.groupOrder,
+          isFallback: !hasGroup,
+        ),
+      ).courses.add(course);
     }
+    final groups = groupMap.values.toList()
+      ..sort((a, b) {
+        if (a.isFallback != b.isFallback) return a.isFallback ? 1 : -1;
+        const last = 0x7fffffff;
+        final byOrder = (a.order ?? last).compareTo(b.order ?? last);
+        if (byOrder != 0) return byOrder;
+        return a.title.compareTo(b.title);
+      });
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -247,7 +271,7 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
           _filterBar(),
           const SizedBox(height: 17),
           const Text(
-            'Học phần theo học kỳ',
+            'Học phần theo khối kiến thức',
             style: TextStyle(
               fontSize: 20,
               color: _Palette.ink,
@@ -256,7 +280,7 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
           ),
           const SizedBox(height: 3),
           const Text(
-            'Chọn một học kỳ để xem danh sách học phần',
+            'Chọn khối kiến thức để xem danh sách học phần',
             style: TextStyle(fontSize: 13, color: _Palette.muted),
           ),
           const SizedBox(height: 14),
@@ -271,18 +295,22 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
               message: 'Không có học phần phù hợp với bộ lọc.',
             )
           else
-            for (final entry in groups.entries) ...[
-              _SemesterCard(
-                key: ValueKey('f04-semester-${entry.key}'),
-                semester: entry.key,
-                courses: entry.value,
-                initiallyExpanded: entry.key == groups.keys.first,
+            for (final group in groups) ...[
+              _KnowledgeGroupCard(
+                key: ValueKey('f04-group-${group.id}'),
+                // Mỗi bộ lọc có trạng thái mở/đóng riêng. Nếu dùng chung
+                // PageStorageKey giữa “Tất cả” và “Tự chọn”, khối trước đó
+                // bị thu gọn có thể vẫn đóng khi trở thành khối đầu tiên.
+                groupId: '${_filter.name}:${group.id}',
+                title: group.title,
+                courses: group.courses,
+                initiallyExpanded: group.id == groups.first.id,
               ),
               const SizedBox(height: 12),
             ],
           const SizedBox(height: 6),
           const Text(
-            'Các khối kiến thức và tín chỉ tích lũy sẽ được bổ sung theo dữ liệu backend đã duyệt; không dùng số liệu mẫu trong Figma.',
+            'Khối kiến thức lấy từ phiên bản CTĐT. Các môn chưa phân nhóm được ghi chú riêng; số liệu tiến độ thuộc API F23.',
             style: TextStyle(
               color: _Palette.muted,
               fontSize: 11,
@@ -499,15 +527,46 @@ class _ProgressUnavailableCard extends StatelessWidget {
   }
 }
 
-class _SemesterCard extends StatelessWidget {
-  const _SemesterCard({
+/// Một nhóm hiển thị của phiên bản CTĐT.
+class _KnowledgeGroup {
+  _KnowledgeGroup({
+    required this.id,
+    required this.title,
+    required this.order,
+    required this.isFallback,
+  });
+  final String id;
+  final String title;
+  final int? order;
+  final bool isFallback;
+  final List<CurriculumCourse> courses = [];
+}
+
+int _compareByKnowledgeGroup(CurriculumCourse a, CurriculumCourse b) {
+  const last = 0x7fffffff;
+  final byGroup = (a.groupOrder ?? last).compareTo(b.groupOrder ?? last);
+  if (byGroup != 0) return byGroup;
+  final aGroup = (a.groupCode ?? a.groupName ?? '').trim();
+  final bGroup = (b.groupCode ?? b.groupName ?? '').trim();
+  final byGroupName = aGroup.compareTo(bGroup);
+  if (byGroupName != 0) return byGroupName;
+  final byItem = (a.itemOrder ?? last).compareTo(b.itemOrder ?? last);
+  if (byItem != 0) return byItem;
+  final bySemester = a.semester.compareTo(b.semester);
+  return bySemester != 0 ? bySemester : a.code.compareTo(b.code);
+}
+
+class _KnowledgeGroupCard extends StatelessWidget {
+  const _KnowledgeGroupCard({
     super.key,
-    required this.semester,
+    required this.groupId,
+    required this.title,
     required this.courses,
     required this.initiallyExpanded,
   });
 
-  final int semester;
+  final String groupId;
+  final String title;
   final List<CurriculumCourse> courses;
   final bool initiallyExpanded;
 
@@ -518,7 +577,7 @@ class _SemesterCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(17),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        key: PageStorageKey('semester-$semester'),
+        key: PageStorageKey('group-$groupId'),
         initiallyExpanded: initiallyExpanded,
         iconColor: _Palette.primary,
         collapsedIconColor: _Palette.muted,
@@ -527,7 +586,7 @@ class _SemesterCard extends StatelessWidget {
         shape: const Border(),
         collapsedShape: const Border(),
         title: Text(
-          semester > 0 ? 'Học kỳ $semester' : 'Chưa xác định học kỳ',
+          title,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w800,
@@ -537,7 +596,7 @@ class _SemesterCard extends StatelessWidget {
         subtitle: const Padding(
           padding: EdgeInsets.only(top: 5),
           child: Text(
-            'Danh sách học phần theo chương trình',
+            'Học phần thuộc khối kiến thức',
             style: TextStyle(color: _Palette.muted, fontSize: 11),
           ),
         ),
@@ -613,7 +672,7 @@ class _CourseLine extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${course.code} · ${course.credits} TC · ${course.isRequired ? 'Bắt buộc' : 'Tự chọn'}',
+                  "${course.code} · ${course.credits} TC · ${course.isRequired ? 'Bắt buộc' : 'Tự chọn'}${course.semester > 0 ? ' · HK ${course.semester}' : ''}",
                   style: const TextStyle(fontSize: 12, color: _Palette.muted),
                 ),
                 if (course.description != null &&

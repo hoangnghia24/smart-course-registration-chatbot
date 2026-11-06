@@ -25,12 +25,13 @@ class ServerpodCurriculumLookupRepository implements CurriculumLookupRepository 
         semester: item.semester,
         isRequired: item.isRequired,
         description: item.course.description,
+        groupCode: item.groupCode,
+        groupName: item.groupName,
+        groupOrder: item.groupOrder,
+        itemOrder: item.itemOrder,
       );
     }).toList(growable: false)
-      ..sort((a, b) {
-        final bySemester = a.semester.compareTo(b.semester);
-        return bySemester != 0 ? bySemester : a.code.compareTo(b.code);
-      });
+      ..sort(_compareCurriculumCourses);
 
     return CurriculumDetails(
       code: dto.curriculum.code,
@@ -42,4 +43,20 @@ class ServerpodCurriculumLookupRepository implements CurriculumLookupRepository 
       items: courses,
     );
   }
+}
+
+/// Sắp theo thứ tự khối kiến thức, sau đó theo thứ tự môn trong CTĐT.
+/// Dữ liệu thiếu thứ tự sẽ được xếp sau, không tự đoán thứ tự khối.
+int _compareCurriculumCourses(CurriculumCourse a, CurriculumCourse b) {
+  const last = 0x7fffffff;
+  final byGroup = (a.groupOrder ?? last).compareTo(b.groupOrder ?? last);
+  if (byGroup != 0) return byGroup;
+  final aGroup = (a.groupCode ?? a.groupName ?? '').trim();
+  final bGroup = (b.groupCode ?? b.groupName ?? '').trim();
+  final byName = aGroup.compareTo(bGroup);
+  if (byName != 0) return byName;
+  final byItem = (a.itemOrder ?? last).compareTo(b.itemOrder ?? last);
+  if (byItem != 0) return byItem;
+  final bySemester = a.semester.compareTo(b.semester);
+  return bySemester != 0 ? bySemester : a.code.compareTo(b.code);
 }

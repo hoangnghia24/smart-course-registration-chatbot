@@ -1,3 +1,5 @@
+/// F04: dữ liệu CHỈ gồm các trường mà API chương trình đào tạo hiện có.
+/// Tiến độ học tập, GPA, trạng thái Đã đạt/Đang học thuộc F23; không tự suy diễn.
 class CurriculumDetails {
   const CurriculumDetails({
     required this.code,
@@ -26,6 +28,10 @@ class CurriculumCourse {
     required this.semester,
     required this.isRequired,
     this.description,
+    this.groupCode,
+    this.groupName,
+    this.groupOrder,
+    this.itemOrder,
   });
 
   final String code;
@@ -34,6 +40,13 @@ class CurriculumCourse {
   final int semester;
   final bool isRequired;
   final String? description;
+
+  /// Nhóm kiến thức được gán theo PHIÊN BẢN CTĐT, không phải thuộc tính cố định của môn.
+  /// Có thể null nếu backend chưa phân nhóm dữ liệu cho học phần này.
+  final String? groupCode;
+  final String? groupName;
+  final int? groupOrder;
+  final int? itemOrder;
 }
 
 abstract class CurriculumLookupRepository {
