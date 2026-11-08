@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/dashboard_widgets.dart';
 import '../../data/mock/mock_dashboard_data.dart';
+import 'course_management/course_management_quick_access.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key, this.onSignOut});
@@ -127,6 +128,15 @@ class AdminDashboard extends StatelessWidget {
             icon: Icons.manage_accounts_outlined,
             iconColor: AppColors.primary,
             iconBackground: AppColors.blueSoft,
+          ),
+          const SizedBox(height: 8),
+          FeatureCard(
+            title: 'Quản lý môn học',
+            subtitle: 'Danh sách, thêm, sửa và ngừng hoạt động môn học',
+            icon: Icons.library_books_outlined,
+            iconColor: AppColors.primary,
+            iconBackground: AppColors.blueSoft,
+            onTap: () => CourseManagementQuickAccess.open(context),
           ),
           const SizedBox(height: 8),
           const FeatureCard(

@@ -11,8 +11,10 @@ import 'features/curriculum_lookup/curriculum_lookup_repository_scope.dart';
 import 'features/curriculum_lookup/data/serverpod_curriculum_lookup_repository.dart';
 import 'features/academic_progress/academic_progress_repository_scope.dart';
 import 'features/academic_progress/data/serverpod_academic_progress_repository.dart';
+import 'features/admin/course_management/data/course_management_repository_scope.dart';
+import 'features/admin/course_management/data/serverpod_course_management_repository.dart';
 
-// Entry point dùng một Client duy nhất cho F01, F03, F04 và F23.
+// Entry point dùng một Client duy nhất cho F01, F03, F04, F23 và F06.
 late final Client client;
 late String serverUrl;
 
@@ -39,8 +41,11 @@ Future<void> main() async {
         repository: ServerpodCurriculumLookupRepository(client),
         child: AcademicProgressRepositoryScope(
           repository: ServerpodAcademicProgressRepository(client),
-          child: SmartCourseApp(
-            f01Gateway: ServerpodF01AuthGateway(client),
+          child: CourseManagementRepositoryScope(
+            repository: ServerpodCourseManagementRepository(client),
+            child: SmartCourseApp(
+              f01Gateway: ServerpodF01AuthGateway(client),
+            ),
           ),
         ),
       ),
