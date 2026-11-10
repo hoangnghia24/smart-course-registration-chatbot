@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/shared_app_header.dart';
 import '../../core/widgets/dashboard_widgets.dart';
 import 'data/course_lookup_repository.dart';
 
@@ -178,11 +179,16 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          _CourseHeader(
-            studentName: widget.studentName,
-            studentCode: widget.studentCode,
-            program: widget.program,
-            onMenu: () {
+          SharedAppHeader.academic(
+            sectionTitle: 'TRA CỨU HỌC PHẦN',
+            identityLine: widget.studentCode.isEmpty
+                ? widget.studentName
+                : '${widget.studentName} - ${widget.studentCode}',
+            detail: widget.program,
+            leadingIcon: Icons.menu_rounded,
+            leadingKey: const ValueKey('course-back'),
+            leadingTooltip: 'Quay về Dashboard',
+            onLeading: () {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
@@ -639,111 +645,6 @@ class _LiveCourseCard extends StatelessWidget {
                     ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _CourseHeader extends StatelessWidget {
-  const _CourseHeader({
-    required this.studentName,
-    required this.studentCode,
-    required this.program,
-    required this.onMenu,
-  });
-
-  final String studentName;
-  final String studentCode;
-  final String program;
-  final VoidCallback onMenu;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: AppColors.primary,
-      child: SafeArea(
-        bottom: false,
-        child: SizedBox(
-          height: 106,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 5, 15, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Text(
-                    'TRA CỨU HỌC PHẦN',
-                    style: TextStyle(
-                      color: Color(0xFFCFDFFF),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Row(
-                    children: [
-                      IconButton(
-                        key: const ValueKey('course-back'),
-                        onPressed: onMenu,
-                        tooltip: 'Quay về Dashboard',
-                        icon: const Icon(Icons.menu_rounded, size: 25, color: Colors.white),
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'HCM-UTE',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              studentCode.isEmpty ? studentName : '$studentName - $studentCode',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              program,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFFCFDFFF),
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const CircleAvatar(
-                        radius: 17,
-                        backgroundColor: Color(0xFF3B78D1),
-                        child: Icon(Icons.person_outline_rounded, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

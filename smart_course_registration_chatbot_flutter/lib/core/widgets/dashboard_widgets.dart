@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'shared_app_header.dart';
 
 class DashboardHeader extends StatelessWidget {
   const DashboardHeader({
@@ -20,79 +21,17 @@ class DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 130,
-      width: double.infinity,
-      color: AppColors.primary,
-      padding: const EdgeInsets.fromLTRB(20, 20, 16, 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: Colors.white.withValues(alpha: 0.16),
-            child: Icon(avatarIcon, color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  role,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.86),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.68),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: 'Thông báo',
-            onPressed: () => showPreviewMessage(
-              context,
-              'Thông báo sẽ được kết nối ở tuần 6.',
-            ),
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: Colors.white,
-            ),
-          ),
-          if (onSignOut != null)
-            IconButton(
-              key: const ValueKey('dashboard-sign-out'),
-              tooltip: 'Đăng xuất demo',
-              onPressed: onSignOut,
-              icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            ),
-        ],
+    return SharedAppHeader.dashboard(
+      role: role,
+      identityLine: name,
+      detail: subtitle,
+      avatarIcon: avatarIcon,
+      onNotification: () => showPreviewMessage(
+        context,
+        'Thông báo sẽ được kết nối ở tuần 6.',
       ),
+      onSignOut: onSignOut,
+      signOutKey: const ValueKey('dashboard-sign-out'),
     );
   }
 }
