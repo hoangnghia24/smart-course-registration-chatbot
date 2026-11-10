@@ -1,0 +1,18 @@
+class: Prerequisite
+table: app_prerequisite
+serverOnly: true
+
+fields:
+  ### môn học đang xét kiểm tra điều kiện tiên quyết
+  courseId: int, relation(parent=app_course, onDelete=Restrict)
+
+  ### môn học tiên quyết
+  prerequisiteCourseId: int, relation(parent=app_course, onDelete=Restrict)
+
+indexes:
+  prerequisite_course_pair_unique_idx:
+    fields: courseId, prerequisiteCourseId
+    unique: true
+
+  prerequisite_reverse_lookup_idx:
+    fields: prerequisiteCourseId

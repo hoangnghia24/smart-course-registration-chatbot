@@ -13,6 +13,10 @@ fields:
 
   maxCreditsPerTerm: double
 
+  ### thời gian bắt đầu và kết thúc học kỳ
+  startAt: DateTime
+  endAt: DateTime
+
 indexes:
   academic_term_year_name_unique_idx:
     fields: academicYear, termName
