@@ -102,6 +102,22 @@ class EndpointAdminAccount extends _i1.EndpointRef {
 }
 
 /// {@category Endpoint}
+class EndpointChatbot extends _i1.EndpointRef {
+  EndpointChatbot(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'chatbot';
+
+  /// Hàm để sinh viên gửi câu hỏi
+  _i2.Future<String> sendMessage(String message) =>
+      caller.callServerEndpoint<String>(
+        'chatbot',
+        'sendMessage',
+        {'message': message},
+      );
+}
+
+/// {@category Endpoint}
 class EndpointCourse extends _i1.EndpointRef {
   EndpointCourse(_i1.EndpointCaller caller) : super(caller);
 
@@ -496,6 +512,7 @@ class Client extends _i1.ServerpodClientShared {
     academic = EndpointAcademic(this);
     account = EndpointAccount(this);
     adminAccount = EndpointAdminAccount(this);
+    chatbot = EndpointChatbot(this);
     course = EndpointCourse(this);
     emailIdp = EndpointEmailIdp(this);
     googleIdp = EndpointGoogleIdp(this);
@@ -510,6 +527,8 @@ class Client extends _i1.ServerpodClientShared {
   late final EndpointAccount account;
 
   late final EndpointAdminAccount adminAccount;
+
+  late final EndpointChatbot chatbot;
 
   late final EndpointCourse course;
 
@@ -530,6 +549,7 @@ class Client extends _i1.ServerpodClientShared {
     'academic': academic,
     'account': account,
     'adminAccount': adminAccount,
+    'chatbot': chatbot,
     'course': course,
     'emailIdp': emailIdp,
     'googleIdp': googleIdp,

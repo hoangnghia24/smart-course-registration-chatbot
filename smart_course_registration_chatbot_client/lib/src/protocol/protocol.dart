@@ -29,12 +29,13 @@ import 'curriculum_item_detail_dto.dart' as _i15;
 import 'curriculum_version_dto.dart' as _i16;
 import 'greetings/greeting.dart' as _i17;
 import 'lecturer_status.dart' as _i18;
+import 'registration_origin.dart' as _i19;
 import 'package:smart_course_registration_chatbot_client/src/protocol/course_dto.dart'
-    as _i19;
-import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _i20;
-import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _i21;
+import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+    as _i22;
 export 'academic_course_progress_dto.dart';
 export 'academic_progress_dto.dart';
 export 'academic_term.dart';
@@ -52,6 +53,7 @@ export 'curriculum_item_detail_dto.dart';
 export 'curriculum_version_dto.dart';
 export 'greetings/greeting.dart';
 export 'lecturer_status.dart';
+export 'registration_origin.dart';
 export 'client.dart';
 
 class Protocol extends _i1.SerializationManager {
@@ -139,6 +141,9 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i18.LecturerStatus) {
       return _i18.LecturerStatus.fromJson(data) as T;
     }
+    if (t == _i19.RegistrationOrigin) {
+      return _i19.RegistrationOrigin.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i2.AcademicCourseProgressDto?>()) {
       return (data != null
               ? _i2.AcademicCourseProgressDto.fromJson(data)
@@ -197,6 +202,10 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i18.LecturerStatus?>()) {
       return (data != null ? _i18.LecturerStatus.fromJson(data) : null) as T;
     }
+    if (t == _i1.getType<_i19.RegistrationOrigin?>()) {
+      return (data != null ? _i19.RegistrationOrigin.fromJson(data) : null)
+          as T;
+    }
     if (t == List<_i2.AcademicCourseProgressDto>) {
       return (data as List)
               .map((e) => deserialize<_i2.AcademicCourseProgressDto>(e))
@@ -209,15 +218,15 @@ class Protocol extends _i1.SerializationManager {
               .toList()
           as T;
     }
-    if (t == List<_i19.CourseDto>) {
-      return (data as List).map((e) => deserialize<_i19.CourseDto>(e)).toList()
+    if (t == List<_i20.CourseDto>) {
+      return (data as List).map((e) => deserialize<_i20.CourseDto>(e)).toList()
           as T;
     }
     try {
-      return _i20.Protocol().deserialize<T>(data, t);
+      return _i21.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i21.Protocol().deserialize<T>(data, t);
+      return _i22.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
@@ -241,6 +250,7 @@ class Protocol extends _i1.SerializationManager {
       _i16.CurriculumVersionDto => 'CurriculumVersionDto',
       _i17.Greeting => 'Greeting',
       _i18.LecturerStatus => 'LecturerStatus',
+      _i19.RegistrationOrigin => 'RegistrationOrigin',
       _ => null,
     };
   }
@@ -292,12 +302,14 @@ class Protocol extends _i1.SerializationManager {
         return 'Greeting';
       case _i18.LecturerStatus():
         return 'LecturerStatus';
+      case _i19.RegistrationOrigin():
+        return 'RegistrationOrigin';
     }
-    className = _i20.Protocol().getClassNameForObject(data);
+    className = _i21.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_idp.$className';
     }
-    className = _i21.Protocol().getClassNameForObject(data);
+    className = _i22.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_core.$className';
     }
@@ -361,13 +373,16 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'LecturerStatus') {
       return deserialize<_i18.LecturerStatus>(data['data']);
     }
+    if (dataClassName == 'RegistrationOrigin') {
+      return deserialize<_i19.RegistrationOrigin>(data['data']);
+    }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
-      return _i20.Protocol().deserializeByClassName(data);
+      return _i21.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
-      return _i21.Protocol().deserializeByClassName(data);
+      return _i22.Protocol().deserializeByClassName(data);
     }
     return super.deserializeByClassName(data);
   }
@@ -382,10 +397,10 @@ class Protocol extends _i1.SerializationManager {
       return null;
     }
     try {
-      return _i20.Protocol().mapRecordToJson(record);
+      return _i21.Protocol().mapRecordToJson(record);
     } catch (_) {}
     try {
-      return _i21.Protocol().mapRecordToJson(record);
+      return _i22.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

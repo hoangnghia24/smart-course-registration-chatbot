@@ -41,10 +41,12 @@ import 'enrollment.dart' as _i25;
 import 'greetings/greeting.dart' as _i26;
 import 'lecturer.dart' as _i27;
 import 'lecturer_status.dart' as _i28;
-import 'student.dart' as _i29;
-import 'user_account.dart' as _i30;
+import 'prerequisite.dart' as _i29;
+import 'registration_origin.dart' as _i30;
+import 'student.dart' as _i31;
+import 'user_account.dart' as _i32;
 import 'package:smart_course_registration_chatbot_server/src/generated/course_dto.dart'
-    as _i31;
+    as _i33;
 export 'academic_course_progress_dto.dart';
 export 'academic_progress_dto.dart';
 export 'academic_term.dart';
@@ -69,6 +71,8 @@ export 'enrollment.dart';
 export 'greetings/greeting.dart';
 export 'lecturer.dart';
 export 'lecturer_status.dart';
+export 'prerequisite.dart';
+export 'registration_origin.dart';
 export 'student.dart';
 export 'user_account.dart';
 
@@ -116,6 +120,18 @@ class Protocol extends _i1.SerializationManagerServer {
           columnType: _i2.ColumnType.doublePrecision,
           isNullable: false,
           dartType: 'double',
+        ),
+        _i2.ColumnDefinition(
+          name: 'startAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'endAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
         ),
       ],
       foreignKeys: [],
@@ -332,6 +348,12 @@ class Protocol extends _i1.SerializationManagerServer {
         ),
         _i2.ColumnDefinition(
           name: 'termId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'teachingPhase',
           columnType: _i2.ColumnType.bigint,
           isNullable: false,
           dartType: 'int',
@@ -881,6 +903,12 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'String',
         ),
         _i2.ColumnDefinition(
+          name: 'registrationOrigin',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:RegistrationOrigin',
+        ),
+        _i2.ColumnDefinition(
           name: 'registeredAt',
           columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
@@ -888,6 +916,12 @@ class Protocol extends _i1.SerializationManagerServer {
         ),
         _i2.ColumnDefinition(
           name: 'cancelledAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'submittedAt',
           columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: true,
           dartType: 'DateTime?',
@@ -1126,6 +1160,101 @@ class Protocol extends _i1.SerializationManagerServer {
           ],
           type: 'btree',
           isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'app_prerequisite',
+      dartName: 'Prerequisite',
+      schema: 'public',
+      module: 'smart_course_registration_chatbot',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'app_prerequisite_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'courseId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'prerequisiteCourseId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_prerequisite_fk_0',
+          columns: ['courseId'],
+          referenceTable: 'app_course',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.restrict,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'app_prerequisite_fk_1',
+          columns: ['prerequisiteCourseId'],
+          referenceTable: 'app_course',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.restrict,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'app_prerequisite_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'prerequisite_course_pair_unique_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'courseId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'prerequisiteCourseId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'prerequisite_reverse_lookup_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'prerequisiteCourseId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
           isPrimary: false,
         ),
       ],
@@ -1438,11 +1567,17 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i28.LecturerStatus) {
       return _i28.LecturerStatus.fromJson(data) as T;
     }
-    if (t == _i29.Student) {
-      return _i29.Student.fromJson(data) as T;
+    if (t == _i29.Prerequisite) {
+      return _i29.Prerequisite.fromJson(data) as T;
     }
-    if (t == _i30.UserAccount) {
-      return _i30.UserAccount.fromJson(data) as T;
+    if (t == _i30.RegistrationOrigin) {
+      return _i30.RegistrationOrigin.fromJson(data) as T;
+    }
+    if (t == _i31.Student) {
+      return _i31.Student.fromJson(data) as T;
+    }
+    if (t == _i32.UserAccount) {
+      return _i32.UserAccount.fromJson(data) as T;
     }
     if (t == _i1.getType<_i5.AcademicCourseProgressDto?>()) {
       return (data != null
@@ -1523,11 +1658,18 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i28.LecturerStatus?>()) {
       return (data != null ? _i28.LecturerStatus.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i29.Student?>()) {
-      return (data != null ? _i29.Student.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i29.Prerequisite?>()) {
+      return (data != null ? _i29.Prerequisite.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i30.UserAccount?>()) {
-      return (data != null ? _i30.UserAccount.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i30.RegistrationOrigin?>()) {
+      return (data != null ? _i30.RegistrationOrigin.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i31.Student?>()) {
+      return (data != null ? _i31.Student.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i32.UserAccount?>()) {
+      return (data != null ? _i32.UserAccount.fromJson(data) : null) as T;
     }
     if (t == List<_i5.AcademicCourseProgressDto>) {
       return (data as List)
@@ -1541,8 +1683,8 @@ class Protocol extends _i1.SerializationManagerServer {
               .toList()
           as T;
     }
-    if (t == List<_i31.CourseDto>) {
-      return (data as List).map((e) => deserialize<_i31.CourseDto>(e)).toList()
+    if (t == List<_i33.CourseDto>) {
+      return (data as List).map((e) => deserialize<_i33.CourseDto>(e)).toList()
           as T;
     }
     try {
@@ -1583,8 +1725,10 @@ class Protocol extends _i1.SerializationManagerServer {
       _i26.Greeting => 'Greeting',
       _i27.Lecturer => 'Lecturer',
       _i28.LecturerStatus => 'LecturerStatus',
-      _i29.Student => 'Student',
-      _i30.UserAccount => 'UserAccount',
+      _i29.Prerequisite => 'Prerequisite',
+      _i30.RegistrationOrigin => 'RegistrationOrigin',
+      _i31.Student => 'Student',
+      _i32.UserAccount => 'UserAccount',
       _ => null,
     };
   }
@@ -1650,9 +1794,13 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'Lecturer';
       case _i28.LecturerStatus():
         return 'LecturerStatus';
-      case _i29.Student():
+      case _i29.Prerequisite():
+        return 'Prerequisite';
+      case _i30.RegistrationOrigin():
+        return 'RegistrationOrigin';
+      case _i31.Student():
         return 'Student';
-      case _i30.UserAccount():
+      case _i32.UserAccount():
         return 'UserAccount';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -1748,11 +1896,17 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'LecturerStatus') {
       return deserialize<_i28.LecturerStatus>(data['data']);
     }
+    if (dataClassName == 'Prerequisite') {
+      return deserialize<_i29.Prerequisite>(data['data']);
+    }
+    if (dataClassName == 'RegistrationOrigin') {
+      return deserialize<_i30.RegistrationOrigin>(data['data']);
+    }
     if (dataClassName == 'Student') {
-      return deserialize<_i29.Student>(data['data']);
+      return deserialize<_i31.Student>(data['data']);
     }
     if (dataClassName == 'UserAccount') {
-      return deserialize<_i30.UserAccount>(data['data']);
+      return deserialize<_i32.UserAccount>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -1810,10 +1964,12 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i25.Enrollment.t;
       case _i27.Lecturer:
         return _i27.Lecturer.t;
-      case _i29.Student:
-        return _i29.Student.t;
-      case _i30.UserAccount:
-        return _i30.UserAccount.t;
+      case _i29.Prerequisite:
+        return _i29.Prerequisite.t;
+      case _i31.Student:
+        return _i31.Student.t;
+      case _i32.UserAccount:
+        return _i32.UserAccount.t;
     }
     return null;
   }

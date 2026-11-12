@@ -21,6 +21,8 @@ abstract class AcademicTerm
     required this.termName,
     required this.status,
     required this.maxCreditsPerTerm,
+    required this.startAt,
+    required this.endAt,
   });
 
   factory AcademicTerm({
@@ -29,6 +31,8 @@ abstract class AcademicTerm
     required String termName,
     required String status,
     required double maxCreditsPerTerm,
+    required DateTime startAt,
+    required DateTime endAt,
   }) = _AcademicTermImpl;
 
   factory AcademicTerm.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -39,6 +43,8 @@ abstract class AcademicTerm
       status: jsonSerialization['status'] as String,
       maxCreditsPerTerm: (jsonSerialization['maxCreditsPerTerm'] as num)
           .toDouble(),
+      startAt: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['startAt']),
+      endAt: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['endAt']),
     );
   }
 
@@ -57,6 +63,11 @@ abstract class AcademicTerm
 
   double maxCreditsPerTerm;
 
+  /// thời gian bắt đầu và kết thúc học kỳ
+  DateTime startAt;
+
+  DateTime endAt;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -69,6 +80,8 @@ abstract class AcademicTerm
     String? termName,
     String? status,
     double? maxCreditsPerTerm,
+    DateTime? startAt,
+    DateTime? endAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -79,6 +92,8 @@ abstract class AcademicTerm
       'termName': termName,
       'status': status,
       'maxCreditsPerTerm': maxCreditsPerTerm,
+      'startAt': startAt.toJson(),
+      'endAt': endAt.toJson(),
     };
   }
 
@@ -91,6 +106,8 @@ abstract class AcademicTerm
       'termName': termName,
       'status': status,
       'maxCreditsPerTerm': maxCreditsPerTerm,
+      'startAt': startAt.toJson(),
+      'endAt': endAt.toJson(),
     };
   }
 
@@ -133,12 +150,16 @@ class _AcademicTermImpl extends AcademicTerm {
     required String termName,
     required String status,
     required double maxCreditsPerTerm,
+    required DateTime startAt,
+    required DateTime endAt,
   }) : super._(
          id: id,
          academicYear: academicYear,
          termName: termName,
          status: status,
          maxCreditsPerTerm: maxCreditsPerTerm,
+         startAt: startAt,
+         endAt: endAt,
        );
 
   /// Returns a shallow copy of this [AcademicTerm]
@@ -151,6 +172,8 @@ class _AcademicTermImpl extends AcademicTerm {
     String? termName,
     String? status,
     double? maxCreditsPerTerm,
+    DateTime? startAt,
+    DateTime? endAt,
   }) {
     return AcademicTerm(
       id: id is int? ? id : this.id,
@@ -158,6 +181,8 @@ class _AcademicTermImpl extends AcademicTerm {
       termName: termName ?? this.termName,
       status: status ?? this.status,
       maxCreditsPerTerm: maxCreditsPerTerm ?? this.maxCreditsPerTerm,
+      startAt: startAt ?? this.startAt,
+      endAt: endAt ?? this.endAt,
     );
   }
 }
@@ -185,6 +210,17 @@ class AcademicTermUpdateTable extends _i1.UpdateTable<AcademicTermTable> {
         table.maxCreditsPerTerm,
         value,
       );
+
+  _i1.ColumnValue<DateTime, DateTime> startAt(DateTime value) =>
+      _i1.ColumnValue(
+        table.startAt,
+        value,
+      );
+
+  _i1.ColumnValue<DateTime, DateTime> endAt(DateTime value) => _i1.ColumnValue(
+    table.endAt,
+    value,
+  );
 }
 
 class AcademicTermTable extends _i1.Table<int?> {
@@ -207,6 +243,14 @@ class AcademicTermTable extends _i1.Table<int?> {
       'maxCreditsPerTerm',
       this,
     );
+    startAt = _i1.ColumnDateTime(
+      'startAt',
+      this,
+    );
+    endAt = _i1.ColumnDateTime(
+      'endAt',
+      this,
+    );
   }
 
   late final AcademicTermUpdateTable updateTable;
@@ -219,6 +263,11 @@ class AcademicTermTable extends _i1.Table<int?> {
 
   late final _i1.ColumnDouble maxCreditsPerTerm;
 
+  /// thời gian bắt đầu và kết thúc học kỳ
+  late final _i1.ColumnDateTime startAt;
+
+  late final _i1.ColumnDateTime endAt;
+
   @override
   List<_i1.Column> get columns => [
     id,
@@ -226,6 +275,8 @@ class AcademicTermTable extends _i1.Table<int?> {
     termName,
     status,
     maxCreditsPerTerm,
+    startAt,
+    endAt,
   ];
 }
 
