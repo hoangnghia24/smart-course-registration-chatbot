@@ -20,48 +20,95 @@ class _Repo implements RecommendationRepository {
 }
 
 const _fallback = RecommendationOverview(
-  hasCurriculum: true, hasProgress: true,
+  hasCurriculum: true,
+  hasProgress: true,
   curriculumName: 'Công nghệ phần mềm',
-  earnedCredits: 86, totalCredits: 150, failedCourseCount: 1,
+  earnedCredits: 86,
+  totalCredits: 150,
+  failedCourseCount: 1,
   courses: [
-    RecommendationCourse(code: 'CS101', name: 'Kiến trúc máy tính',
-        credits: 3, progressStatus: 'PASSED'),
-    RecommendationCourse(code: 'CS102', name: 'Toán rời rạc',
-        credits: 3, progressStatus: 'FAILED'),
+    RecommendationCourse(
+      code: 'CS101',
+      name: 'Kiến trúc máy tính',
+      credits: 3,
+      progressStatus: 'PASSED',
+    ),
+    RecommendationCourse(
+      code: 'CS102',
+      name: 'Toán rời rạc',
+      credits: 3,
+      progressStatus: 'FAILED',
+    ),
   ],
 );
 
 const _official = RecommendationOverview(
-  hasCurriculum: true, hasProgress: true,
+  hasCurriculum: true,
+  hasProgress: true,
   isOfficialRecommendation: true,
   curriculumName: 'Công nghệ phần mềm',
-  earnedCredits: 86, totalCredits: 150, failedCourseCount: 1,
+  earnedCredits: 86,
+  totalCredits: 150,
+  failedCourseCount: 1,
   courses: [
-    RecommendationCourse(code: 'CS101', name: 'Kiến trúc máy tính',
-        credits: 3, eligible: true, priorityRank: 1,
-        explanations: ['Nền tảng phần cứng']),
-    RecommendationCourse(code: 'CS202', name: 'Hệ điều hành',
-        credits: 3, eligible: true, priorityRank: 2,
-        reasonCodes: ['RECOMMENDED_SEMESTER'],
-        explanations: ['Ưu tiên học theo thứ tự']),
-    RecommendationCourse(code: 'CS303', name: 'Mạng máy tính',
-        credits: 3, eligible: true, priorityRank: 3,
-        explanations: ['Tiếp nối kiến thức']),
-    RecommendationCourse(code: 'CS404', name: 'Toán rời rạc',
-        credits: 3, eligible: true, priorityRank: 4,
-        progressStatus: 'FAILED', lastAcademicScore: 3.5,
-        reasonCodes: ['RETAKE_RECOMMENDED']),
-    RecommendationCourse(code: 'CS999', name: 'Môn chưa đủ',
-        credits: 3, eligible: false, priorityRank: null),
+    RecommendationCourse(
+      code: 'CS101',
+      name: 'Kiến trúc máy tính',
+      credits: 3,
+      eligible: true,
+      priorityRank: 1,
+      explanations: ['Nền tảng phần cứng'],
+    ),
+    RecommendationCourse(
+      code: 'CS202',
+      name: 'Hệ điều hành',
+      credits: 3,
+      eligible: true,
+      priorityRank: 2,
+      reasonCodes: ['RECOMMENDED_SEMESTER'],
+      explanations: ['Ưu tiên học theo thứ tự'],
+    ),
+    RecommendationCourse(
+      code: 'CS303',
+      name: 'Mạng máy tính',
+      credits: 3,
+      eligible: true,
+      priorityRank: 3,
+      explanations: ['Tiếp nối kiến thức'],
+    ),
+    RecommendationCourse(
+      code: 'CS404',
+      name: 'Toán rời rạc',
+      credits: 3,
+      eligible: true,
+      priorityRank: 4,
+      progressStatus: 'FAILED',
+      lastAcademicScore: 3.5,
+      reasonCodes: ['RETAKE_RECOMMENDED'],
+    ),
+    RecommendationCourse(
+      code: 'CS999',
+      name: 'Môn chưa đủ',
+      credits: 3,
+      eligible: false,
+      priorityRank: null,
+    ),
   ],
 );
 
-Future<void> _show(WidgetTester tester, RecommendationRepository repo,
-    {bool preview = false}) async {
-  await tester.pumpWidget(MaterialApp(home: RecommendationScreen(
-    repository: repo,
-    isPreview: preview,
-  )));
+Future<void> _show(
+  WidgetTester tester,
+  RecommendationRepository repo, {
+  bool preview = false,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: RecommendationScreen(
+        repository: repo,
+        isPreview: preview,
+      ),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -71,8 +118,9 @@ Future<void> _see(WidgetTester tester, Key key) async {
 }
 
 void main() {
-  testWidgets('Đúng 3 khu vực Frame-9, dùng SharedAppHeader và menu',
-      (tester) async {
+  testWidgets('Đúng 3 khu vực Frame-9, dùng SharedAppHeader và menu', (
+    tester,
+  ) async {
     await _show(tester, _Repo(() async => _official), preview: true);
     expect(find.byType(SharedAppHeader), findsOneWidget);
     expect(find.text('Lộ trình học tập'), findsWidgets);
@@ -86,8 +134,9 @@ void main() {
     expect(find.textContaining('86/150 tín chỉ'), findsOneWidget);
   });
 
-  testWidgets('Chưa có Rule Engine: không tự tạo các bước hoặc nhãn Nên xem',
-      (tester) async {
+  testWidgets('Chưa có Rule Engine: không tự tạo các bước hoặc nhãn Nên xem', (
+    tester,
+  ) async {
     await _show(tester, _Repo(() async => _fallback));
     expect(find.byKey(const ValueKey('f24-disclaimer')), findsOneWidget);
     expect(find.byKey(const ValueKey('f24-roadmap-empty')), findsOneWidget);
@@ -98,8 +147,9 @@ void main() {
     expect(find.text('1 môn chưa đạt'), findsOneWidget);
   });
 
-  testWidgets('Thứ tự 1-2-3 đến từ priority; không dùng danh sách F23',
-      (tester) async {
+  testWidgets('Thứ tự 1-2-3 đến từ priority; không dùng danh sách F23', (
+    tester,
+  ) async {
     await _show(tester, _Repo(() async => _official));
     expect(find.byKey(const ValueKey('f24-step-CS101')), findsOneWidget);
     expect(find.byKey(const ValueKey('f24-step-CS202')), findsOneWidget);
@@ -108,12 +158,19 @@ void main() {
     expect(find.text('Bước 1'), findsOneWidget);
     expect(find.text('Bước 2'), findsOneWidget);
     expect(find.text('Bước 3'), findsOneWidget);
-    expect(find.byKey(const ValueKey('f24-selected-step-accent')), findsOneWidget);
-    expect(find.textContaining('không đồng nghĩa điều kiện tiên quyết'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('f24-selected-step-accent')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('không đồng nghĩa điều kiện tiên quyết'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Gợi ý học kỳ có nhãn Nên xem và Học lại đúng mã BE',
-      (tester) async {
+  testWidgets('Gợi ý học kỳ có nhãn Nên xem và Học lại đúng mã BE', (
+    tester,
+  ) async {
     await _show(tester, _Repo(() async => _official));
     await _see(tester, const ValueKey('f24-course-CS202'));
     expect(find.byKey(const ValueKey('f24-course-CS202')), findsOneWidget);
@@ -125,34 +182,45 @@ void main() {
     expect(find.byKey(const ValueKey('f24-course-CS999')), findsNothing);
   });
 
-  testWidgets('Nhấn thông tin môn mở chi tiết, không bịa danh sách lớp',
-      (tester) async {
+  testWidgets('Nhấn thông tin môn mở chi tiết, không bịa danh sách lớp', (
+    tester,
+  ) async {
     await _show(tester, _Repo(() async => _official));
     await _see(tester, const ValueKey('f24-course-CS202'));
     await tester.tap(find.byKey(const ValueKey('f24-action-CS202')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Điều kiện đăng ký: Đủ điều kiện'), findsOneWidget);
+    expect(
+      find.textContaining('Điều kiện đăng ký: Đủ điều kiện'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Số lớp được API trả về'), findsNothing);
-    expect(find.textContaining('Danh sách lớp học phần chỉ được hiển thị'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Danh sách lớp học phần chỉ được hiển thị'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Nút Học lại mở thông tin an toàn, không hiển thị lớp giả',
-      (tester) async {
+  testWidgets('Nút Học lại mở thông tin an toàn, không hiển thị lớp giả', (
+    tester,
+  ) async {
     await _show(tester, _Repo(() async => _official));
     await _see(tester, const ValueKey('f24-course-CS404'));
     await tester.tap(find.byKey(const ValueKey('f24-action-CS404')));
     await tester.pumpAndSettle();
     expect(find.textContaining('Điểm học phần'), findsNothing);
-    expect(find.textContaining('Danh sách lớp học phần chỉ được hiển thị'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Danh sách lớp học phần chỉ được hiển thị'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Tiến độ học: Chưa đạt'), findsOneWidget);
   });
 
   testWidgets('Loading rồi có dữ liệu, đúng số request', (tester) async {
     final completer = Completer<RecommendationOverview?>();
     final repo = _Repo(() => completer.future);
-    await tester.pumpWidget(MaterialApp(home: RecommendationScreen(repository: repo)));
+    await tester.pumpWidget(
+      MaterialApp(home: RecommendationScreen(repository: repo)),
+    );
     await tester.pump();
     expect(find.byKey(const ValueKey('f24-loading')), findsOneWidget);
     completer.complete(_fallback);
@@ -167,9 +235,16 @@ void main() {
   });
 
   testWidgets('Rỗng không tạo môn giả', (tester) async {
-    await _show(tester, _Repo(() async => const RecommendationOverview(
-      hasCurriculum: true, hasProgress: true, courses: [],
-    )));
+    await _show(
+      tester,
+      _Repo(
+        () async => const RecommendationOverview(
+          hasCurriculum: true,
+          hasProgress: true,
+          courses: [],
+        ),
+      ),
+    );
     expect(find.byKey(const ValueKey('f24-empty')), findsOneWidget);
     expect(find.byKey(const ValueKey('f24-roadmap-empty')), findsOneWidget);
   });
@@ -194,15 +269,24 @@ void main() {
     expect(find.textContaining('chưa được cấp quyền'), findsOneWidget);
   });
 
-  testWidgets('Quick Access mở đúng màn, dữ liệu định danh chuyển động',
-      (tester) async {
+  testWidgets('Quick Access mở đúng màn, dữ liệu định danh chuyển động', (
+    tester,
+  ) async {
     final repo = _Repo(() async => _fallback);
-    await tester.pumpWidget(RecommendationRepositoryScope(
-      repository: repo,
-      child: const MaterialApp(home: Scaffold(body: RecommendationQuickAccess(
-        studentName: 'Sinh viên A', studentCode: 'SV001', program: 'CNPM',
-      ))),
-    ));
+    await tester.pumpWidget(
+      RecommendationRepositoryScope(
+        repository: repo,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: RecommendationQuickAccess(
+              studentName: 'Sinh viên A',
+              studentCode: 'SV001',
+              program: 'CNPM',
+            ),
+          ),
+        ),
+      ),
+    );
     await tester.tap(find.text('Lộ trình học tập'));
     await tester.pumpAndSettle();
     expect(find.byType(RecommendationScreen), findsOneWidget);
@@ -211,23 +295,30 @@ void main() {
   });
 
   testWidgets('Không có Scope không mở màn', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: Scaffold(
-      body: RecommendationQuickAccess(),
-    )));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: RecommendationQuickAccess(),
+        ),
+      ),
+    );
     await tester.tap(find.text('Lộ trình học tập'));
     await tester.pump();
     expect(find.byType(RecommendationScreen), findsNothing);
     expect(find.textContaining('chưa được kết nối repository'), findsOneWidget);
   });
 
-  testWidgets('Kết quả cũ không ghi đè sau khi đổi repository',
-      (tester) async {
+  testWidgets('Kết quả cũ không ghi đè sau khi đổi repository', (tester) async {
     final older = Completer<RecommendationOverview?>();
     final oldRepo = _Repo(() => older.future);
-    await tester.pumpWidget(MaterialApp(home: RecommendationScreen(repository: oldRepo)));
+    await tester.pumpWidget(
+      MaterialApp(home: RecommendationScreen(repository: oldRepo)),
+    );
     await tester.pump();
     final newer = _Repo(() async => _fallback);
-    await tester.pumpWidget(MaterialApp(home: RecommendationScreen(repository: newer)));
+    await tester.pumpWidget(
+      MaterialApp(home: RecommendationScreen(repository: newer)),
+    );
     await tester.pumpAndSettle();
     older.complete(_official);
     await tester.pumpAndSettle();

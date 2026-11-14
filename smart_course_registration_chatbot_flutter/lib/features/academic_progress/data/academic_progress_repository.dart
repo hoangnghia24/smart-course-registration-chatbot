@@ -48,10 +48,12 @@ class AcademicCourseProgress {
   final String? groupName;
   final int? groupOrder;
   final int? itemOrder;
+
   /// PASSED / FAILED / IN_PROGRESS / NOT_STARTED.
   final String status;
   final String? statusDetail;
   final double? score;
+
   /// AVAILABLE / NOT_PUBLISHED / NO_DATA / POLICY_PENDING.
   final String scoreStatus;
 }

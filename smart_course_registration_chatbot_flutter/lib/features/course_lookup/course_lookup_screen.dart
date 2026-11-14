@@ -23,6 +23,7 @@ class CourseLookupScreen extends StatefulWidget {
   final String studentCode;
   final String program;
   final CourseLookupRepository? repository;
+
   /// True khi repository lấy dữ liệu từ Serverpod, không hiển thị mock như thật.
   final bool isLiveData;
 
@@ -81,7 +82,9 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
           final course = result.firstWhere((c) => c.code == _expandedCode);
           _detailFuture = course.id == null
               ? Future<CourseInfo>.error(StateError('Thiếu ID học phần.'))
-              : (_repository as CourseDetailsRepository).getCourseById(course.id!);
+              : (_repository as CourseDetailsRepository).getCourseById(
+                  course.id!,
+                );
         } else {
           _detailFuture = null;
         }
@@ -114,9 +117,11 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
     if (widget.isLiveData && filter == CourseLookupFilter.majorOnly) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(
-          content: Text('API F03 chưa hỗ trợ lọc học phần theo ngành/CTĐT.'),
-        ));
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('API F03 chưa hỗ trợ lọc học phần theo ngành/CTĐT.'),
+          ),
+        );
       return;
     }
     _filter = filter;
@@ -192,7 +197,10 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
-                showPreviewMessage(context, 'Đây là màn hình tra cứu học phần.');
+                showPreviewMessage(
+                  context,
+                  'Đây là màn hình tra cứu học phần.',
+                );
               }
             },
           ),
@@ -201,7 +209,8 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
               top: false,
               child: SingleChildScrollView(
                 key: const ValueKey('course-scroll'),
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,7 +360,9 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
             side: BorderSide(
               color: selected ? AppColors.primary : const Color(0xFFD8E2F0),
             ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
           ),
           child: FittedBox(
             fit: BoxFit.scaleDown,
@@ -448,7 +459,9 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
         _expandedCode = course.code;
         _detailFuture = course.id == null
             ? Future<CourseInfo>.error(StateError('Thiếu ID học phần.'))
-            : (_repository as CourseDetailsRepository).getCourseById(course.id!);
+            : (_repository as CourseDetailsRepository).getCourseById(
+                course.id!,
+              );
       });
     }
   }
@@ -494,7 +507,10 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
                     SizedBox(height: 5),
                     Text(
                       'Kiểm tra quan hệ giữa các môn học',
-                      style: TextStyle(color: AppColors.mutedText, fontSize: 11),
+                      style: TextStyle(
+                        color: AppColors.mutedText,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -507,7 +523,6 @@ class _CourseLookupScreenState extends State<CourseLookupScreen> {
     );
   }
 }
-
 
 /// Thẻ dữ liệu F03 thật: chỉ hiển thị các trường CourseDto được backend cung cấp.
 /// Không bịa trạng thái đã đạt, lớp đang mở, tiên quyết hoặc lịch học.
@@ -551,30 +566,38 @@ class _LiveCourseCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(course.name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              )),
+                          Text(
+                            course.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
                           const SizedBox(height: 5),
-                          Text('Mã môn: ${course.code}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.mutedText,
-                              )),
+                          Text(
+                            'Mã môn: ${course.code}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.mutedText,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     Column(
                       children: [
-                        _Tag('${course.credits} TC',
-                            color: AppColors.primary,
-                            background: const Color(0xFFE2EEFF)),
-                        Icon(expanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                            color: AppColors.primary),
+                        _Tag(
+                          '${course.credits} TC',
+                          color: AppColors.primary,
+                          background: const Color(0xFFE2EEFF),
+                        ),
+                        Icon(
+                          expanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.primary,
+                        ),
                       ],
                     ),
                   ],
@@ -593,7 +616,8 @@ class _LiveCourseCard extends StatelessWidget {
                         if (snapshot.connectionState != ConnectionState.done) {
                           return const Center(
                             child: CircularProgressIndicator(
-                                key: ValueKey('course-detail-loading')),
+                              key: ValueKey('course-detail-loading'),
+                            ),
                           );
                         }
                         if (snapshot.hasError || !snapshot.hasData) {
@@ -601,8 +625,10 @@ class _LiveCourseCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text('Không tải được chi tiết học phần.'),
-                              TextButton(onPressed: onRetry,
-                                  child: const Text('Thử lại chi tiết')),
+                              TextButton(
+                                onPressed: onRetry,
+                                child: const Text('Thử lại chi tiết'),
+                              ),
                             ],
                           );
                         }
@@ -611,25 +637,38 @@ class _LiveCourseCard extends StatelessWidget {
                           key: const ValueKey('course-live-details'),
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _Tag(details.isActive == true
-                                  ? 'Môn đang hoạt động' : 'Môn ngừng hoạt động',
-                                color: AppColors.primary,
-                                background: const Color(0xFFE9F1FF)),
+                            _Tag(
+                              details.isActive == true
+                                  ? 'Môn đang hoạt động'
+                                  : 'Môn ngừng hoạt động',
+                              color: AppColors.primary,
+                              background: const Color(0xFFE9F1FF),
+                            ),
                             const SizedBox(height: 12),
-                            const Text('Mô tả học phần',
-                              style: TextStyle(fontWeight: FontWeight.w700,
-                                  color: AppColors.text)),
+                            const Text(
+                              'Mô tả học phần',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.text,
+                              ),
+                            ),
                             const SizedBox(height: 6),
-                            Text(details.description?.trim().isNotEmpty == true
+                            Text(
+                              details.description?.trim().isNotEmpty == true
                                   ? details.description!
                                   : 'Chưa có mô tả trong cơ sở dữ liệu.',
-                              style: const TextStyle(color: AppColors.mutedText)),
+                              style: const TextStyle(
+                                color: AppColors.mutedText,
+                              ),
+                            ),
                             const SizedBox(height: 12),
                             const Text(
                               'API F03 chưa cung cấp lớp đang mở, điểm đã đạt '
                               'và điều kiện tiên quyết.',
-                              style: TextStyle(fontSize: 11,
-                                  color: AppColors.mutedText),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.mutedText,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             const SizedBox(
@@ -681,7 +720,11 @@ class _CourseCard extends StatelessWidget {
             const CircleAvatar(
               radius: 15,
               backgroundColor: Color(0xFFDCF7E9),
-              child: Icon(Icons.check_rounded, color: Color(0xFF119B70), size: 21),
+              child: Icon(
+                Icons.check_rounded,
+                color: Color(0xFF119B70),
+                size: 21,
+              ),
             ),
             const SizedBox(width: 11),
             Expanded(
@@ -701,7 +744,10 @@ class _CourseCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     '${course.code} · ${course.credits} tín chỉ',
-                    style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
+                    style: const TextStyle(
+                      color: AppColors.mutedText,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -718,7 +764,11 @@ class _CourseCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 7),
-            _Tag('Đã đạt', color: const Color(0xFF138F66), background: const Color(0xFFE3F8EC)),
+            _Tag(
+              'Đã đạt',
+              color: const Color(0xFF138F66),
+              background: const Color(0xFFE3F8EC),
+            ),
           ],
         ),
       );
@@ -766,9 +816,17 @@ class _CourseCard extends StatelessWidget {
                     ),
                     Column(
                       children: [
-                        _Tag('${course.credits} TC', color: AppColors.primary, background: const Color(0xFFE2EEFF)),
-                        Icon(expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                            color: AppColors.primary),
+                        _Tag(
+                          '${course.credits} TC',
+                          color: AppColors.primary,
+                          background: const Color(0xFFE2EEFF),
+                        ),
+                        Icon(
+                          expanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.primary,
+                        ),
                       ],
                     ),
                   ],
@@ -808,15 +866,29 @@ class _CourseCard extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Điều kiện học phần',
-                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.text)),
+                              Text(
+                                'Điều kiện học phần',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: AppColors.text,
+                                ),
+                              ),
                               SizedBox(height: 5),
-                              Text('Xem tiên quyết và môn tương đương',
-                                  style: TextStyle(fontSize: 11, color: AppColors.mutedText)),
+                              Text(
+                                'Xem tiên quyết và môn tương đương',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.mutedText,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.primary,
+                        ),
                       ],
                     ),
                   ),
@@ -824,11 +896,20 @@ class _CourseCard extends StatelessWidget {
                   Row(
                     children: [
                       const Expanded(
-                        child: Text('Lớp học phần đang mở',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.text)),
+                        child: Text(
+                          'Lớp học phần đang mở',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: AppColors.text,
+                          ),
+                        ),
                       ),
-                      _Tag('${course.classes.length} lớp',
-                          color: AppColors.primary, background: const Color(0xFFE8F1FF)),
+                      _Tag(
+                        '${course.classes.length} lớp',
+                        color: AppColors.primary,
+                        background: const Color(0xFFE8F1FF),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -844,11 +925,16 @@ class _CourseCard extends StatelessWidget {
                       onPressed: onRegister,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
                       ),
                       child: const Text(
                         'Xem lớp và đăng ký',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -878,22 +964,36 @@ class _ClassSampleTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(section.classCode,
-              style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w700)),
+          Text(
+            section.classCode,
+            style: const TextStyle(
+              color: AppColors.text,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 5),
-          Text(section.schedule,
-              style: const TextStyle(color: AppColors.mutedText, fontSize: 11)),
+          Text(
+            section.schedule,
+            style: const TextStyle(color: AppColors.mutedText, fontSize: 11),
+          ),
           const SizedBox(height: 7),
           Row(
             children: [
               Expanded(
                 child: Text(
                   '${section.registered}/${section.capacity} sinh viên đã đăng ký',
-                  style: const TextStyle(color: AppColors.mutedText, fontSize: 10),
+                  style: const TextStyle(
+                    color: AppColors.mutedText,
+                    fontSize: 10,
+                  ),
                 ),
               ),
-              _Tag('Còn ${section.remaining}',
-                  color: const Color(0xFF138F66), background: const Color(0xFFE3F8EC)),
+              _Tag(
+                'Còn ${section.remaining}',
+                color: const Color(0xFF138F66),
+                background: const Color(0xFFE3F8EC),
+              ),
             ],
           ),
         ],
@@ -912,12 +1012,19 @@ class _Tag extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(9)),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(9),
+      ),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -941,12 +1048,19 @@ class _StatusCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         children: [
           Icon(icon, size: 32, color: AppColors.mutedText),
           const SizedBox(height: 10),
-          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.text)),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.text),
+          ),
           const SizedBox(height: 9),
           TextButton(onPressed: onAction, child: Text(actionLabel)),
         ],

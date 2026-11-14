@@ -12,10 +12,15 @@ class _FailingRepository implements CourseLookupRepository {
 }
 
 void main() {
-  Future<void> pumpScreen(WidgetTester tester, {CourseLookupRepository? repo}) async {
-    await tester.pumpWidget(MaterialApp(
-      home: CourseLookupScreen(repository: repo),
-    ));
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    CourseLookupRepository? repo,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CourseLookupScreen(repository: repo),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -31,7 +36,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('F03 hiển thị 2 học phần mẫu từ Figma và nhãn minh họa', (tester) async {
+  testWidgets('F03 hiển thị 2 học phần mẫu từ Figma và nhãn minh họa', (
+    tester,
+  ) async {
     await pumpScreen(tester);
     expect(find.text('Tìm kiếm học phần'), findsOneWidget);
     expect(find.text('Lập trình di động'), findsOneWidget);
@@ -71,7 +78,9 @@ void main() {
     expect(find.text('Lập trình di động'), findsOneWidget);
   });
 
-  testWidgets('không có kết quả hiện empty, xóa tìm kiếm khôi phục', (tester) async {
+  testWidgets('không có kết quả hiện empty, xóa tìm kiếm khôi phục', (
+    tester,
+  ) async {
     await pumpScreen(tester);
     await enterSearchAndWait(tester, 'MON-KHONG-TON-TAI');
     expect(find.byKey(const ValueKey('course-empty')), findsOneWidget);
@@ -80,7 +89,9 @@ void main() {
     expect(find.text('2 học phần'), findsOneWidget);
   });
 
-  testWidgets('khi repository lỗi hiển thị error và nút thử lại', (tester) async {
+  testWidgets('khi repository lỗi hiển thị error và nút thử lại', (
+    tester,
+  ) async {
     await pumpScreen(tester, repo: _FailingRepository());
     expect(find.byKey(const ValueKey('course-error')), findsOneWidget);
     expect(find.text('Thử lại'), findsOneWidget);
@@ -88,7 +99,9 @@ void main() {
 
   testWidgets('nút xem lớp và đăng ký không ghi danh thật', (tester) async {
     await pumpScreen(tester);
-    await tester.ensureVisible(find.byKey(const ValueKey('course-register-preview')));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('course-register-preview')),
+    );
     await tester.tap(find.byKey(const ValueKey('course-register-preview')));
     await tester.pump();
     expect(find.textContaining('Đây là dữ liệu minh họa'), findsOneWidget);
@@ -96,23 +109,36 @@ void main() {
 
   testWidgets('tiên quyết không bịa quy định hay dữ liệu API', (tester) async {
     await pumpScreen(tester);
-    await tester.ensureVisible(find.byKey(const ValueKey('course-prerequisite-shortcut')));
-    await tester.tap(find.byKey(const ValueKey('course-prerequisite-shortcut')));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('course-prerequisite-shortcut')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('course-prerequisite-shortcut')),
+    );
     await tester.pumpAndSettle();
-    expect(find.textContaining('Chưa có dữ liệu hoặc quy định học vụ'), findsOneWidget);
+    expect(
+      find.textContaining('Chưa có dữ liệu hoặc quy định học vụ'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('nút menu quay về khi được mở từ Dashboard', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(builder: (context) => Scaffold(
-        body: TextButton(
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => const CourseLookupScreen(),
-          )),
-          child: const Text('Mở F03'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const CourseLookupScreen(),
+                ),
+              ),
+              child: const Text('Mở F03'),
+            ),
+          ),
         ),
-      )),
-    ));
+      ),
+    );
     await tester.tap(find.text('Mở F03'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('course-back')));
@@ -120,7 +146,9 @@ void main() {
     expect(find.text('Mở F03'), findsOneWidget);
   });
 
-  testWidgets('hiển thị trên khung mobile 320px không overflow', (tester) async {
+  testWidgets('hiển thị trên khung mobile 320px không overflow', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

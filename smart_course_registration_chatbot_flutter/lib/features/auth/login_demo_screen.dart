@@ -357,7 +357,11 @@ class _LoginCard extends StatelessWidget {
                 style: TextStyle(color: AppColors.mutedText, fontSize: 12),
               ),
               const SizedBox(height: 17),
-              _FieldLabel(label: isServerMode ? 'Email nhà trường' : 'Email hoặc mã người dùng'),
+              _FieldLabel(
+                label: isServerMode
+                    ? 'Email nhà trường'
+                    : 'Email hoặc mã người dùng',
+              ),
               const SizedBox(height: 6),
               TextFormField(
                 key: const ValueKey('login-username'),
@@ -365,7 +369,9 @@ class _LoginCard extends StatelessWidget {
                 textInputAction: TextInputAction.next,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  hintText: isServerMode ? 'Nhập email nhà trường' : 'Nhập email hoặc mã sinh viên',
+                  hintText: isServerMode
+                      ? 'Nhập email nhà trường'
+                      : 'Nhập email hoặc mã sinh viên',
                   prefixIcon: Icon(Icons.mail_outline_rounded),
                 ),
                 validator: (value) {
@@ -430,14 +436,20 @@ class _LoginCard extends StatelessWidget {
                     const Expanded(
                       child: Text(
                         'Ghi nhớ đăng nhập',
-                        style: TextStyle(color: AppColors.mutedText, fontSize: 11),
+                        style: TextStyle(
+                          color: AppColors.mutedText,
+                          fontSize: 11,
+                        ),
                       ),
                     ),
                   ] else
                     const Expanded(
                       child: Text(
                         'Phiên đăng nhập do Serverpod quản lý',
-                        style: TextStyle(color: AppColors.mutedText, fontSize: 10),
+                        style: TextStyle(
+                          color: AppColors.mutedText,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
                   TextButton(

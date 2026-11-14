@@ -105,12 +105,12 @@ class StudentDashboard extends StatelessWidget {
                 iconColor: feature.iconColor,
                 iconBackground: feature.iconBackground,
                 onTap: feature.title == 'Trợ lý học vụ AI'
-                  ? () => Navigator.of(context).push(
+                    ? () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const ChatbotFigmaScreen(),
                         ),
                       )
-                  : null,
+                    : null,
               ),
             ),
           ),

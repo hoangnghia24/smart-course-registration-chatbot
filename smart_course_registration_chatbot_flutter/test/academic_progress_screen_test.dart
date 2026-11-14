@@ -28,36 +28,70 @@ const _data = AcademicProgressDetails(
   gpaStatus: 'POLICY_PENDING',
   courses: [
     AcademicCourseProgress(
-      code: 'CS101', name: 'Lập trình hướng đối tượng', credits: 3,
-      semester: 1, isRequired: true, groupCode: 'CSN',
-      groupName: 'Cơ sở ngành', groupOrder: 1, itemOrder: 1,
-      status: 'PASSED', score: 9, scoreStatus: 'AVAILABLE',
+      code: 'CS101',
+      name: 'Lập trình hướng đối tượng',
+      credits: 3,
+      semester: 1,
+      isRequired: true,
+      groupCode: 'CSN',
+      groupName: 'Cơ sở ngành',
+      groupOrder: 1,
+      itemOrder: 1,
+      status: 'PASSED',
+      score: 9,
+      scoreStatus: 'AVAILABLE',
     ),
     AcademicCourseProgress(
-      code: 'CS102', name: 'Toán rời rạc', credits: 3,
-      semester: 2, isRequired: true, groupCode: 'CSN',
-      groupName: 'Cơ sở ngành', groupOrder: 1, itemOrder: 2,
-      status: 'FAILED', score: null, scoreStatus: 'NOT_PUBLISHED',
+      code: 'CS102',
+      name: 'Toán rời rạc',
+      credits: 3,
+      semester: 2,
+      isRequired: true,
+      groupCode: 'CSN',
+      groupName: 'Cơ sở ngành',
+      groupOrder: 1,
+      itemOrder: 2,
+      status: 'FAILED',
+      score: null,
+      scoreStatus: 'NOT_PUBLISHED',
     ),
     AcademicCourseProgress(
-      code: 'CS103', name: 'Hệ quản trị CSDL', credits: 3,
-      semester: 3, isRequired: true, groupCode: 'CN',
-      groupName: 'Chuyên ngành', groupOrder: 2, itemOrder: 1,
-      status: 'IN_PROGRESS', score: null, scoreStatus: 'NO_DATA',
+      code: 'CS103',
+      name: 'Hệ quản trị CSDL',
+      credits: 3,
+      semester: 3,
+      isRequired: true,
+      groupCode: 'CN',
+      groupName: 'Chuyên ngành',
+      groupOrder: 2,
+      itemOrder: 1,
+      status: 'IN_PROGRESS',
+      score: null,
+      scoreStatus: 'NO_DATA',
     ),
     AcademicCourseProgress(
-      code: 'CS104', name: 'Bảo mật mạng', credits: 3,
-      semester: 4, isRequired: false, groupCode: 'CN',
-      groupName: 'Chuyên ngành', groupOrder: 2, itemOrder: 2,
-      status: 'NOT_STARTED', score: null, scoreStatus: 'POLICY_PENDING',
+      code: 'CS104',
+      name: 'Bảo mật mạng',
+      credits: 3,
+      semester: 4,
+      isRequired: false,
+      groupCode: 'CN',
+      groupName: 'Chuyên ngành',
+      groupOrder: 2,
+      itemOrder: 2,
+      status: 'NOT_STARTED',
+      score: null,
+      scoreStatus: 'POLICY_PENDING',
     ),
   ],
 );
 
 Future<void> _show(WidgetTester tester, _FakeRepository repository) async {
-  await tester.pumpWidget(MaterialApp(
-    home: AcademicProgressScreen(repository: repository),
-  ));
+  await tester.pumpWidget(
+    MaterialApp(
+      home: AcademicProgressScreen(repository: repository),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -66,11 +100,14 @@ Future<void> _scrollTo(
   Finder target,
 ) async {
   await tester.scrollUntilVisible(
-    target, 190,
-    scrollable: find.descendant(
-      of: find.byKey(const ValueKey('f23-scroll-view')),
-      matching: find.byType(Scrollable),
-    ).first,
+    target,
+    190,
+    scrollable: find
+        .descendant(
+          of: find.byKey(const ValueKey('f23-scroll-view')),
+          matching: find.byType(Scrollable),
+        )
+        .first,
   );
   await tester.pumpAndSettle();
 }
@@ -83,7 +120,9 @@ void main() {
     expect(find.text('KẾT QUẢ HỌC TẬP'), findsOneWidget);
   });
 
-  testWidgets('F23 hiển thị tín chỉ thực và GPA đang chờ quy chế', (tester) async {
+  testWidgets('F23 hiển thị tín chỉ thực và GPA đang chờ quy chế', (
+    tester,
+  ) async {
     await _show(tester, _FakeRepository(() async => _data));
     expect(find.text('Bảng điểm học tập'), findsOneWidget);
     expect(find.byKey(const ValueKey('f23-gpa')), findsOneWidget);
@@ -100,7 +139,9 @@ void main() {
       earnedCredits: null,
       remainingCredits: null,
       creditStatus: 'POLICY_PENDING',
-      gpa: null, gpaStatus: 'NO_DATA', courses: _data.courses,
+      gpa: null,
+      gpaStatus: 'NO_DATA',
+      courses: _data.courses,
     );
     await _show(tester, _FakeRepository(() async => nullCredits));
     expect(find.text('Tổng tín chỉ chưa xác định'), findsOneWidget);
@@ -137,11 +178,13 @@ void main() {
 
   testWidgets('F23 có trạng thái đang tải', (tester) async {
     final completer = Completer<AcademicProgressDetails?>();
-    await tester.pumpWidget(MaterialApp(
-      home: AcademicProgressScreen(
-        repository: _FakeRepository(() => completer.future),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AcademicProgressScreen(
+          repository: _FakeRepository(() => completer.future),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.byKey(const ValueKey('f23-loading')), findsOneWidget);
     completer.complete(_data);
@@ -155,7 +198,10 @@ void main() {
   });
 
   testWidgets('F23 xử lý sai quyền', (tester) async {
-    await _show(tester, _FakeRepository(() async => throw Exception('FORBIDDEN')));
+    await _show(
+      tester,
+      _FakeRepository(() async => throw Exception('FORBIDDEN')),
+    );
     expect(find.byKey(const ValueKey('f23-error')), findsOneWidget);
     expect(find.textContaining('không có quyền'), findsOneWidget);
   });
@@ -185,25 +231,33 @@ void main() {
     final first = find.byKey(const ValueKey('f23-filter-all'));
     final last = find.byKey(const ValueKey('f23-filter-notStarted'));
     expect(find.byKey(const ValueKey('f23-status-filters')), findsOneWidget);
-    for (final name in ['all', 'passed', 'failed', 'inProgress', 'notStarted']) {
+    for (final name in [
+      'all',
+      'passed',
+      'failed',
+      'inProgress',
+      'notStarted',
+    ]) {
       final rect = tester.getRect(find.byKey(ValueKey('f23-filter-$name')));
       expect(rect.left, greaterThanOrEqualTo(0));
       expect(rect.right, lessThanOrEqualTo(390));
     }
     // Hai trạng thái mở rộng xuống hàng thay vì bị cắt ở mép phải.
-    expect(tester.getTopLeft(last).dy,
-      greaterThan(tester.getTopLeft(first).dy));
+    expect(
+      tester.getTopLeft(last).dy,
+      greaterThan(tester.getTopLeft(first).dy),
+    );
   });
 
-  testWidgets('F23 có vạch trạng thái xanh và đỏ theo kết quả API', (tester) async {
+  testWidgets('F23 có vạch trạng thái xanh và đỏ theo kết quả API', (
+    tester,
+  ) async {
     await _show(tester, _FakeRepository(() async => _data));
     final passed = find.byKey(const ValueKey('f23-status-stripe-CS101'));
     final failed = find.byKey(const ValueKey('f23-status-stripe-CS102'));
     await _scrollTo(tester, passed);
-    expect(tester.widget<ColoredBox>(passed).color,
-      const Color(0xFF16865B));
+    expect(tester.widget<ColoredBox>(passed).color, const Color(0xFF16865B));
     await _scrollTo(tester, failed);
-    expect(tester.widget<ColoredBox>(failed).color,
-      const Color(0xFFD93448));
+    expect(tester.widget<ColoredBox>(failed).color, const Color(0xFFD93448));
   });
 }

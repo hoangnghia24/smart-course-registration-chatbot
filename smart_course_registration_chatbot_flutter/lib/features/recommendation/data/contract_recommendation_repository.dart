@@ -18,7 +18,9 @@ class ContractRecommendationRepository implements RecommendationRepository {
 
 /// Chuyển đổi response theo hợp đồng BE-FE đã thống nhất.
 /// Những trường tùy chọn thiếu/null được giữ là null. Không tự đoán eligibility.
-RecommendationOverview parseRecommendationContract(Map<String, dynamic> response) {
+RecommendationOverview parseRecommendationContract(
+  Map<String, dynamic> response,
+) {
   final rawItems = response['items'];
   if (rawItems is! List) {
     throw const FormatException('F24_CONTRACT_INVALID: items phải là List.');
@@ -43,26 +45,31 @@ RecommendationOverview parseRecommendationContract(Map<String, dynamic> response
       ..._strings(data['explanations']),
       ..._detailMessages(data['reasonDetails']),
     ];
-    items.add(RecommendationCourse(
-      code: code,
-      name: name,
-      courseId: _int(data['courseId']),
-      credits: _int(data['credits']),
-      semester: _int(data['semester']),
-      isRequired: data['isRequired'] is bool ? data['isRequired'] as bool : null,
-      groupName: _string(data['groupName']),
-      progressStatus: _string(data['progressStatus']),
-      eligible: data['eligible'] is bool ? data['eligible'] as bool : null,
-      eligibilityStatus: _string(data['eligibilityStatus']),
-      priorityRank: _int(data['priority']),
-      score: data['score'] is num ? data['score'] as num : null,
-      reasonCodes: List.unmodifiable(reasonCodes),
-      explanations: List.unmodifiable(explanations),
-      reasonCode: reasonCodes.isEmpty ? null : reasonCodes.first,
-      availableClassCount: _int(data['availableClassCount']),
-      lastAcademicScore: data['lastAcademicScore'] is num
-          ? (data['lastAcademicScore'] as num).toDouble() : null,
-    ));
+    items.add(
+      RecommendationCourse(
+        code: code,
+        name: name,
+        courseId: _int(data['courseId']),
+        credits: _int(data['credits']),
+        semester: _int(data['semester']),
+        isRequired: data['isRequired'] is bool
+            ? data['isRequired'] as bool
+            : null,
+        groupName: _string(data['groupName']),
+        progressStatus: _string(data['progressStatus']),
+        eligible: data['eligible'] is bool ? data['eligible'] as bool : null,
+        eligibilityStatus: _string(data['eligibilityStatus']),
+        priorityRank: _int(data['priority']),
+        score: data['score'] is num ? data['score'] as num : null,
+        reasonCodes: List.unmodifiable(reasonCodes),
+        explanations: List.unmodifiable(explanations),
+        reasonCode: reasonCodes.isEmpty ? null : reasonCodes.first,
+        availableClassCount: _int(data['availableClassCount']),
+        lastAcademicScore: data['lastAcademicScore'] is num
+            ? (data['lastAcademicScore'] as num).toDouble()
+            : null,
+      ),
+    );
   }
 
   return RecommendationOverview(
@@ -77,8 +84,9 @@ RecommendationOverview parseRecommendationContract(Map<String, dynamic> response
     totalCredits: _int(response['totalCredits']),
     failedCourseCount: _int(response['failedCourseCount']),
     curriculumName: _string(response['curriculumName']),
-    partialMessage: invalidItems == 0 ? null :
-        '$invalidItems học phần thiếu mã/tên trong phản hồi F24 đã được bỏ qua.',
+    partialMessage: invalidItems == 0
+        ? null
+        : '$invalidItems học phần thiếu mã/tên trong phản hồi F24 đã được bỏ qua.',
   );
 }
 

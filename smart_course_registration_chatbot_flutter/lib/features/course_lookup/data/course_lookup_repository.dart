@@ -50,7 +50,6 @@ abstract class CourseLookupRepository {
     required String query,
     required CourseLookupFilter filter,
   });
-
 }
 
 /// Giao diện tùy chọn cho API chi tiết F03-02, không ảnh hưởng các test demo cũ.
@@ -96,17 +95,20 @@ class DemoCourseLookupRepository implements CourseLookupRepository {
     // Độ trễ hiển thị phục vụ kiểm thử UI loading, KHÔNG mô phỏng API thật.
     await Future<void>.delayed(const Duration(milliseconds: 160));
     final normalizedQuery = _normalize(query.trim());
-    return _sampleCourses.where((course) {
-      final matchesText = normalizedQuery.isEmpty ||
-          _normalize(course.name).contains(normalizedQuery) ||
-          _normalize(course.code).contains(normalizedQuery);
-      final matchesFilter = switch (filter) {
-        CourseLookupFilter.all => true,
-        CourseLookupFilter.majorOnly => course.inMajor,
-        CourseLookupFilter.threeCredits => course.credits == 3,
-      };
-      return matchesText && matchesFilter;
-    }).toList(growable: false);
+    return _sampleCourses
+        .where((course) {
+          final matchesText =
+              normalizedQuery.isEmpty ||
+              _normalize(course.name).contains(normalizedQuery) ||
+              _normalize(course.code).contains(normalizedQuery);
+          final matchesFilter = switch (filter) {
+            CourseLookupFilter.all => true,
+            CourseLookupFilter.majorOnly => course.inMajor,
+            CourseLookupFilter.threeCredits => course.credits == 3,
+          };
+          return matchesText && matchesFilter;
+        })
+        .toList(growable: false);
   }
 }
 

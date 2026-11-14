@@ -385,10 +385,12 @@ class FeatureCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: onTap ?? () => showPreviewMessage(
-  context,
-  'Chức năng này sẽ được triển khai ở tuần 6.',
-        ),
+        onTap:
+            onTap ??
+            () => showPreviewMessage(
+              context,
+              'Chức năng này sẽ được triển khai ở tuần 6.',
+            ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           child: Row(

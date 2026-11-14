@@ -76,14 +76,14 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       setState(() {
         _loading = false;
         _overview = null;
-        _error = code.contains('AUTH_REQUIRED') ||
-                code.contains('UNAUTHENTICATED')
+        _error =
+            code.contains('AUTH_REQUIRED') || code.contains('UNAUTHENTICATED')
             ? 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'
             : code.contains('FORBIDDEN') ||
-                    code.contains('ACCOUNT_INACTIVE') ||
-                    code.contains('ACCOUNT_NOT_PROVISIONED')
-                ? 'Tài khoản chưa được cấp quyền xem dữ liệu học tập.'
-                : 'Không tải được lộ trình học tập. Kiểm tra kết nối và thử lại.';
+                  code.contains('ACCOUNT_INACTIVE') ||
+                  code.contains('ACCOUNT_NOT_PROVISIONED')
+            ? 'Tài khoản chưa được cấp quyền xem dữ liệu học tập.'
+            : 'Không tải được lộ trình học tập. Kiểm tra kết nối và thử lại.';
       });
     }
   }
@@ -151,12 +151,20 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       );
     }
     if (_error != null) {
-      return _feedback('f24-error', Icons.wifi_off_rounded, _error!, retry: true);
+      return _feedback(
+        'f24-error',
+        Icons.wifi_off_rounded,
+        _error!,
+        retry: true,
+      );
     }
     if (_overview == null) {
-      return _feedback('f24-unavailable', Icons.school_outlined,
-          'Chưa đủ thông tin chương trình đào tạo và tiến độ học tập.',
-          retry: true);
+      return _feedback(
+        'f24-unavailable',
+        Icons.school_outlined,
+        'Chưa đủ thông tin chương trình đào tạo và tiến độ học tập.',
+        retry: true,
+      );
     }
     final overview = _overview!;
     final ordered = _orderedCourses(overview);
@@ -189,14 +197,17 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     _softNotice(
                       'Đang dùng dữ liệu CTĐT (F04) và tiến độ (F23). '
                       'Chưa có kết quả đề xuất chính thức từ Rule Engine F24/F27.',
-                      key: const ValueKey('f24-disclaimer')),
+                      key: const ValueKey('f24-disclaimer'),
+                    ),
                   ],
                   const SizedBox(height: 22),
                   _sectionTitle(
                     'Thứ tự môn học đề xuất',
-                    widget.isPreview ? 'Ví dụ minh họa' :
-                        (overview.isOfficialRecommendation
-                            ? 'Theo Rule Engine' : 'Chưa có gợi ý'),
+                    widget.isPreview
+                        ? 'Ví dụ minh họa'
+                        : (overview.isOfficialRecommendation
+                              ? 'Theo Rule Engine'
+                              : 'Chưa có gợi ý'),
                   ),
                   const SizedBox(height: 10),
                   _roadmap(overview, ordered),
@@ -205,22 +216,30 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                   const SizedBox(height: 10),
                   if (overview.isOfficialRecommendation) ...[
                     if (recommendations.isEmpty)
-                      _emptySection('Chưa có học phần đủ điều kiện trong kết quả gợi ý hiện tại.')
+                      _emptySection(
+                        'Chưa có học phần đủ điều kiện trong kết quả gợi ý hiện tại.',
+                      )
                     else
-                      ...recommendations.map((course) => RecommendationCard(
-                        course: course,
-                        isOfficial: true,
-                        onOpenDetails: () => _openDetails(course, true),
-                      )),
+                      ...recommendations.map(
+                        (course) => RecommendationCard(
+                          course: course,
+                          isOfficial: true,
+                          onOpenDetails: () => _openDetails(course, true),
+                        ),
+                      ),
                   ] else ...[
                     if (overview.courses.isEmpty)
                       _emptySection('Chưa có học phần từ chương trình đào tạo.')
                     else
-                      ...overview.courses.take(5).map((course) => RecommendationCard(
-                        course: course,
-                        isOfficial: false,
-                        onOpenDetails: () => _openDetails(course, false),
-                      )),
+                      ...overview.courses
+                          .take(5)
+                          .map(
+                            (course) => RecommendationCard(
+                              course: course,
+                              isOfficial: false,
+                              onOpenDetails: () => _openDetails(course, false),
+                            ),
+                          ),
                     if (overview.courses.length > 5)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -241,9 +260,14 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   List<RecommendationCourse> _orderedCourses(RecommendationOverview overview) {
     if (!overview.isOfficialRecommendation) return const [];
-    final values = overview.courses.where((c) =>
-      c.priorityRank != null && c.priorityRank! > 0 && c.eligible == true)
-      .toList();
+    final values = overview.courses
+        .where(
+          (c) =>
+              c.priorityRank != null &&
+              c.priorityRank! > 0 &&
+              c.eligible == true,
+        )
+        .toList();
     values.sort((a, b) {
       final byRank = a.priorityRank!.compareTo(b.priorityRank!);
       return byRank != 0 ? byRank : a.code.compareTo(b.code);
@@ -257,7 +281,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     // Nếu BE trả mã lý do chọn học kỳ, ưu tiên chính xác nhóm đó.
     // Không suy ra điều kiện đăng ký từ trạng thái F23 hay thứ tự CTĐT.
     final specific = eligible.where((c) {
-      final codes = <String>{...c.reasonCodes, if (c.reasonCode != null) c.reasonCode!};
+      final codes = <String>{
+        ...c.reasonCodes,
+        if (c.reasonCode != null) c.reasonCode!,
+      };
       return codes.contains('RECOMMENDED_SEMESTER') ||
           codes.contains('RETAKE_RECOMMENDED') ||
           codes.contains('RETAKE_REQUIRED');
@@ -278,9 +305,14 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   Widget _pageTitle(RecommendationOverview overview) => Row(
     children: [
       const Expanded(
-        child: Text('Lộ trình học tập',
-          style: TextStyle(color: _ink, fontSize: 23,
-              fontWeight: FontWeight.w800)),
+        child: Text(
+          'Lộ trình học tập',
+          style: TextStyle(
+            color: _ink,
+            fontSize: 23,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
@@ -290,43 +322,57 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         ),
         child: Text(
           overview.isOfficialRecommendation ? 'Cá nhân hóa' : 'Chờ đề xuất',
-          style: const TextStyle(color: _navy,
-              fontWeight: FontWeight.w800, fontSize: 13),
+          style: const TextStyle(
+            color: _navy,
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
         ),
       ),
     ],
   );
 
   Widget _personalPlan(RecommendationOverview overview) {
-    final creditText = overview.earnedCredits == null ||
-            overview.totalCredits == null
+    final creditText =
+        overview.earnedCredits == null || overview.totalCredits == null
         ? 'Chưa đủ số liệu tín chỉ'
         : '${overview.earnedCredits}/${overview.totalCredits} tín chỉ';
     final failed = overview.failedCourseCount;
     return Container(
       key: const ValueKey('f24-plan'),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: BoxDecoration(color: Colors.white,
-        borderRadius: BorderRadius.circular(19)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 45, height: 45,
+                width: 45,
+                height: 45,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1ECFF),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.route_rounded,
-                    size: 25, color: _purple),
+                child: const Icon(
+                  Icons.route_rounded,
+                  size: 25,
+                  color: _purple,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
-                child: Text('Kế hoạch học tập cá nhân',
-                  style: TextStyle(color: _ink, fontWeight: FontWeight.w800,
-                      fontSize: 17)),
+                child: Text(
+                  'Kế hoạch học tập cá nhân',
+                  style: TextStyle(
+                    color: _ink,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                  ),
+                ),
               ),
             ],
           ),
@@ -343,18 +389,20 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             spacing: 20,
             runSpacing: 10,
             children: [
-              _dotLabel(widget.isPreview
-                  ? 'Học theo thứ tự phù hợp'
-                  : overview.isOfficialRecommendation
-                      ? 'Thứ tự học được đề xuất'
-                      : 'Chưa có thứ tự gợi ý',
-                  const Color(0xFF2D6EC7)),
+              _dotLabel(
+                widget.isPreview
+                    ? 'Học theo thứ tự phù hợp'
+                    : overview.isOfficialRecommendation
+                    ? 'Thứ tự học được đề xuất'
+                    : 'Chưa có thứ tự gợi ý',
+                const Color(0xFF2D6EC7),
+              ),
               _dotLabel(
                 failed == null
                     ? 'Chưa có dữ liệu môn chưa đạt'
                     : widget.isPreview
-                        ? '$failed môn cần học lại'
-                        : '$failed môn chưa đạt',
+                    ? '$failed môn cần học lại'
+                    : '$failed môn chưa đạt',
                 _red,
               ),
             ],
@@ -367,37 +415,58 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   Widget _dotLabel(String text, Color color) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Container(width: 10, height: 10, decoration: BoxDecoration(
-          color: color, shape: BoxShape.circle)),
+      Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
       const SizedBox(width: 8),
-      Text(text, style: TextStyle(
-          color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+      Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     ],
   );
 
   Widget _sectionTitle(String title, String detail) => Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      Expanded(child: Text(title,
-          style: const TextStyle(color: _ink, fontWeight: FontWeight.w800,
-              fontSize: 19))),
+      Expanded(
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: _ink,
+            fontWeight: FontWeight.w800,
+            fontSize: 19,
+          ),
+        ),
+      ),
       const SizedBox(width: 8),
       Text(detail, style: const TextStyle(color: _muted, fontSize: 12)),
     ],
   );
 
-  Widget _roadmap(RecommendationOverview overview,
-      List<RecommendationCourse> ordered) {
+  Widget _roadmap(
+    RecommendationOverview overview,
+    List<RecommendationCourse> ordered,
+  ) {
     return Container(
       key: const ValueKey('f24-roadmap'),
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white,
-          borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: ordered.isEmpty
           ? _emptyInCard(
               overview.isOfficialRecommendation
                   ? 'Rule Engine chưa cung cấp thứ tự ưu tiên và điều kiện đủ để lập lộ trình.'
-                  : 'Chưa có thứ tự đề xuất từ Rule Engine. Không dùng thứ tự CTĐT để suy ra môn nên học trước.')
+                  : 'Chưa có thứ tự đề xuất từ Rule Engine. Không dùng thứ tự CTĐT để suy ra môn nên học trước.',
+            )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -408,8 +477,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                       padding: EdgeInsets.only(left: 21, top: 0, bottom: 0),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Icon(Icons.south_rounded,
-                            size: 30, color: Color(0xFF9CB4D7)),
+                        child: Icon(
+                          Icons.south_rounded,
+                          size: 30,
+                          color: Color(0xFF9CB4D7),
+                        ),
                       ),
                     ),
                 ],
@@ -420,8 +492,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     Icon(Icons.info_outline, size: 17, color: _navy),
                     SizedBox(width: 8),
                     Expanded(
-                      child: Text('Thứ tự gợi ý không đồng nghĩa điều kiện tiên quyết.',
-                        style: TextStyle(color: _muted, fontSize: 12)),
+                      child: Text(
+                        'Thứ tự gợi ý không đồng nghĩa điều kiện tiên quyết.',
+                        style: TextStyle(color: _muted, fontSize: 12),
+                      ),
                     ),
                   ],
                 ),
@@ -443,8 +517,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            border: Border.all(color: selected
-                ? const Color(0xFFB8D3FE) : const Color(0xFFE0E7F1)),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFFB8D3FE)
+                  : const Color(0xFFE0E7F1),
+            ),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Stack(
@@ -459,7 +536,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     child: Text(
                       '${index + 1}',
                       style: TextStyle(
-                        color: selected ? Colors.white : const Color(0xFF57718F),
+                        color: selected
+                            ? Colors.white
+                            : const Color(0xFF57718F),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -493,7 +572,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(9),
                       color: selected
@@ -533,30 +615,39 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     );
   }
 
-  Widget _nextSectionHeading(RecommendationOverview overview, int count) =>
-    Row(
-      children: [
-        Expanded(
-          child: Text(overview.isOfficialRecommendation
-              ? 'Gợi ý học kỳ tiếp theo' : 'Học phần trong CTĐT',
-            style: const TextStyle(color: _ink,
-                fontSize: 19, fontWeight: FontWeight.w800)),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0EAFF),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Text(
-            overview.isOfficialRecommendation
-                ? '$count gợi ý' : '${overview.courses.length} học phần',
-            style: const TextStyle(color: _purple,
-                fontWeight: FontWeight.w800, fontSize: 12),
+  Widget _nextSectionHeading(RecommendationOverview overview, int count) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          overview.isOfficialRecommendation
+              ? 'Gợi ý học kỳ tiếp theo'
+              : 'Học phần trong CTĐT',
+          style: const TextStyle(
+            color: _ink,
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
           ),
         ),
-      ],
-    );
+      ),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0EAFF),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          overview.isOfficialRecommendation
+              ? '$count gợi ý'
+              : '${overview.courses.length} học phần',
+          style: const TextStyle(
+            color: _purple,
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    ],
+  );
 
   Widget _emptyInCard(String message) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
@@ -565,8 +656,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       children: [
         const Icon(Icons.route_outlined, size: 32, color: _muted),
         const SizedBox(height: 9),
-        Text(message, textAlign: TextAlign.center,
-            style: const TextStyle(color: _muted, height: 1.5)),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: _muted, height: 1.5),
+        ),
       ],
     ),
   );
@@ -574,31 +668,49 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   Widget _emptySection(String message) => Container(
     key: const ValueKey('f24-empty'),
     padding: const EdgeInsets.all(22),
-    decoration: BoxDecoration(color: Colors.white,
-        borderRadius: BorderRadius.circular(15)),
-    child: Text(message, textAlign: TextAlign.center,
-      style: const TextStyle(color: _muted)),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: Text(
+      message,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: _muted),
+    ),
   );
 
   Widget _softNotice(String text, {Key? key}) => Container(
     key: key,
     padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: const Color(0xFFE9F1FF),
-        borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE9F1FF),
+      borderRadius: BorderRadius.circular(12),
+    ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Icon(Icons.info_outline, size: 18, color: _navy),
         const SizedBox(width: 8),
-        Expanded(child: Text(text,
-          style: const TextStyle(color: Color(0xFF355A89), fontSize: 12,
-              height: 1.4))),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF355A89),
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+        ),
       ],
     ),
   );
 
-  Widget _feedback(String keyName, IconData icon, String message,
-      {bool retry = false}) => Center(
+  Widget _feedback(
+    String keyName,
+    IconData icon,
+    String message, {
+    bool retry = false,
+  }) => Center(
     child: Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -607,8 +719,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         children: [
           Icon(icon, size: 44, color: _muted),
           const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center,
-              style: const TextStyle(color: _ink)),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _ink),
+          ),
           if (retry) ...[
             const SizedBox(height: 16),
             OutlinedButton.icon(
@@ -635,25 +750,44 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(course.name, style: const TextStyle(
-                    fontSize: 21, fontWeight: FontWeight.w800, color: _ink)),
+                Text(
+                  course.name,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    color: _ink,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text('${course.code} · ${course.credits == null ? 'Chưa rõ tín chỉ' : '${course.credits} tín chỉ'}',
-                    style: const TextStyle(color: _muted)),
+                Text(
+                  '${course.code} · ${course.credits == null ? 'Chưa rõ tín chỉ' : '${course.credits} tín chỉ'}',
+                  style: const TextStyle(color: _muted),
+                ),
                 const SizedBox(height: 16),
                 _detailRow('Tiến độ học', _progressText(course.progressStatus)),
-                _detailRow('Điều kiện đăng ký', !official
-                    ? 'Chưa có dữ liệu từ F24/F27'
-                    : course.eligible == true ? 'Đủ điều kiện'
-                    : course.eligible == false ? 'Chưa đủ điều kiện' : 'Chưa xác định'),
-                _detailRow('Thứ tự ưu tiên', course.priorityRank?.toString() ?? 'Chưa xác định'),
+                _detailRow(
+                  'Điều kiện đăng ký',
+                  !official
+                      ? 'Chưa có dữ liệu từ F24/F27'
+                      : course.eligible == true
+                      ? 'Đủ điều kiện'
+                      : course.eligible == false
+                      ? 'Chưa đủ điều kiện'
+                      : 'Chưa xác định',
+                ),
+                _detailRow(
+                  'Thứ tự ưu tiên',
+                  course.priorityRank?.toString() ?? 'Chưa xác định',
+                ),
                 if (official && course.explanations.isNotEmpty)
                   _detailRow('Lý do gợi ý', course.explanations.join('; ')),
                 if (official && course.reasonCodes.isNotEmpty)
                   _detailRow('Mã lý do', course.reasonCodes.join(', ')),
                 if (official && course.availableClassCount != null)
-                  _detailRow('Số lớp được API trả về',
-                      '${course.availableClassCount}'),
+                  _detailRow(
+                    'Số lớp được API trả về',
+                    '${course.availableClassCount}',
+                  ),
                 const SizedBox(height: 10),
                 const Text(
                   'Danh sách lớp học phần chỉ được hiển thị khi API F05 '
@@ -678,8 +812,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   Widget _detailRow(String label, String value) => Padding(
     padding: const EdgeInsets.only(bottom: 9),
-    child: Text('$label: $value',
-      style: const TextStyle(fontSize: 14, color: _ink)),
+    child: Text(
+      '$label: $value',
+      style: const TextStyle(fontSize: 14, color: _ink),
+    ),
   );
 
   String _progressText(String? status) => switch (status) {

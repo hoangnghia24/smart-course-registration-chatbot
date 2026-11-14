@@ -32,21 +32,25 @@ class RecommendationQuickAccess extends StatelessWidget {
           if (repo == null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Chức năng F24/F27 chưa được kết nối repository.'),
+                content: Text(
+                  'Chức năng F24/F27 chưa được kết nối repository.',
+                ),
               ),
             );
             return;
           }
-          Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => RecommendationScreen(
-              repository: repo,
-              studentDisplayName: [studentName, studentCode]
-                  .whereType<String>()
-                  .where((s) => s.trim().isNotEmpty)
-                  .join(' - '),
-              studentIdentifier: program,
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => RecommendationScreen(
+                repository: repo,
+                studentDisplayName: [studentName, studentCode]
+                    .whereType<String>()
+                    .where((s) => s.trim().isNotEmpty)
+                    .join(' - '),
+                studentIdentifier: program,
+              ),
             ),
-          ));
+          );
         },
       ),
     );

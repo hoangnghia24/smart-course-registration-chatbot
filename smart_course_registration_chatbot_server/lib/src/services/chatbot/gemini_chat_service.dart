@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -46,31 +45,33 @@ rằng cần kiểm tra dữ liệu từ Rule Engine ở backend.
     late final http.Response response;
 
     try {
-      response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: jsonEncode({
-          'systemInstruction': {
-            'parts': [
-              {'text': _systemPrompt},
-            ],
-          },
-          'contents': [
-            {
-              'role': 'user',
-              'parts': [
-                {'text': message},
-              ],
+      response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey,
             },
-          ],
-          'generationConfig': {
-            'maxOutputTokens': 1024,
-          },
-        }),
-      ).timeout(const Duration(seconds: 45));
+            body: jsonEncode({
+              'systemInstruction': {
+                'parts': [
+                  {'text': _systemPrompt},
+                ],
+              },
+              'contents': [
+                {
+                  'role': 'user',
+                  'parts': [
+                    {'text': message},
+                  ],
+                },
+              ],
+              'generationConfig': {
+                'maxOutputTokens': 1024,
+              },
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
     } on TimeoutException {
       throw AppException(
         code: 'AI_TIMEOUT',
@@ -91,9 +92,7 @@ rằng cần kiểm tra dữ liệu từ Rule Engine ở backend.
     // Kiểm tra lỗi từ API
     if (response.statusCode != 200) {
       throw AppException(
-        code: response.statusCode == 429
-            ? 'AI_RATE_LIMIT'
-            : 'AI_API_ERROR',
+        code: response.statusCode == 429 ? 'AI_RATE_LIMIT' : 'AI_API_ERROR',
         message: response.statusCode == 429
             ? 'Gemini đã hết hạn mức hoặc đang giới hạn lượt gọi.'
             : 'Gemini API lỗi (HTTP ${response.statusCode}).',
@@ -102,9 +101,11 @@ rằng cần kiểm tra dữ liệu từ Rule Engine ở backend.
 
     // Đọc dữ liệu JSON trả về
     try {
-      final data = jsonDecode(
-        utf8.decode(response.bodyBytes),
-      ) as Map<String, dynamic>;
+      final data =
+          jsonDecode(
+                utf8.decode(response.bodyBytes),
+              )
+              as Map<String, dynamic>;
 
       final candidates = data['candidates'] as List?;
       if (candidates == null || candidates.isEmpty) {
