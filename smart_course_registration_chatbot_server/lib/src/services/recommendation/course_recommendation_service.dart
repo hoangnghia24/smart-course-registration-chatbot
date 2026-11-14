@@ -1,7 +1,6 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
-import '../../security/account_guard.dart';
 
 /// F24 - Gợi ý môn học dựa hoàn toàn trên quy tắc nghiệp vụ.
 ///
@@ -16,11 +15,12 @@ class CourseRecommendationService {
 
   static Future<RecommendationResult> recommend(
     Session session, {
+    required int studentId,
     required int termId,
     required int teachingPhase,
     required Set<int> curriculumCourseIds,
+    Set<int>? requiredCourseIds,
   }) async {
-    final studentId = await AccountGuard.requireStudentId(session);
     if (studentId <= 0 || termId <= 0) {
       throw ArgumentError('studentId và termId phải lớn hơn 0.');
     }
@@ -28,7 +28,18 @@ class CourseRecommendationService {
       throw ArgumentError('teachingPhase phải là 1 hoặc 2.');
     }
     if (curriculumCourseIds.isEmpty) {
-      throw StateError('Chương trình đào tạo chưa có danh sách môn học.');
+      throw AppException(
+        code: 'F24_CURRICULUM_EMPTY',
+        message: 'CTĐT của bạn chưa có học phần. Vui lòng liên hệ phòng đào tạo.',
+      );
+    }
+    if (requiredCourseIds != null &&
+        !curriculumCourseIds.containsAll(requiredCourseIds)) {
+      throw StateError('Danh sách môn bắt buộc nằm ngoài CTĐT.');
+    }
+
+    if (await Student.db.findById(session, studentId) == null) {
+      throw StateError('Không tìm thấy sinh viên $studentId.');
     }
 
     // Không dựa vào termId để suy ra học kỳ trước/sau.
@@ -106,11 +117,8 @@ class CourseRecommendationService {
       );
       for (final e in allOpenEnrollments) {
         if (e.status == 'ENROLLED' || e.status == 'COMPLETED') {
-          seatCounts.update(
-            e.sectionId,
-            (count) => count + 1,
-            ifAbsent: () => 1,
-          );
+          seatCounts.update(e.sectionId, (count) => count + 1,
+              ifAbsent: () => 1);
         }
       }
     }
@@ -120,12 +128,27 @@ class CourseRecommendationService {
       where: (t) => t.courseId.inSet(curriculumCourseIds),
     );
 
+    // Seed CTĐT 2026 trước đó không bao gồm bảng tiên quyết.
+    // Không được ngầm coi mọi môn là không có tiên quyết.
+    final hasDocumentedPrerequisites =
+        courses.any((c) => c.code == 'DASA230179') &&
+        courses.any((c) => c.code == 'INPR130285');
+    if (hasDocumentedPrerequisites && edges.isEmpty) {
+      throw AppException(
+        code: 'F24_PREREQUISITES_NOT_READY',
+        message: 'Dữ liệu CTĐT đã có nhưng chưa nhập quan hệ học phần '
+            'trước/tiên quyết. F24 chưa thể kiểm tra đủ điều kiện đăng ký. '
+            'Cần xác minh và nạp bảng app_prerequisite trước.',
+      );
+    }
+
     return rankFromSnapshot(
       RecommendationSnapshot(
         studentId: studentId,
         termId: termId,
         teachingPhase: teachingPhase,
         curriculumCourseIds: curriculumCourseIds,
+        requiredCourseIds: requiredCourseIds,
         termOrderById: termOrderById,
         courses: [
           for (final c in courses)
@@ -179,10 +202,8 @@ class CourseRecommendationService {
       final match = RegExp(
         r'^(?:hk|học\s*kỳ|hoc\s*ky|semester|term|kỳ)\s*([1-3])$',
       ).firstMatch(name);
-      final isSummer = RegExp(
-        r'^(?:(?:học\s*kỳ|hoc\s*ky)\s*)?'
-        r'(?:hè|he|summer)$',
-      ).hasMatch(name);
+      final isSummer = RegExp(r'^(?:(?:học\s*kỳ|hoc\s*ky)\s*)?'
+          r'(?:hè|he|summer)$').hasMatch(name);
       if (match == null && !isSummer) {
         throw StateError(
           'Tên học kỳ "${t.termName}" chưa được hỗ trợ; '
@@ -205,6 +226,10 @@ class CourseRecommendationService {
   ) {
     if (input.teachingPhase != 1 && input.teachingPhase != 2) {
       throw ArgumentError('teachingPhase phải là 1 hoặc 2.');
+    }
+    if (input.requiredCourseIds != null &&
+        !input.curriculumCourseIds.containsAll(input.requiredCourseIds!)) {
+      throw StateError('Nhóm môn bắt buộc không thuộc CTĐT.');
     }
     final currentOrder = input.termOrderById[input.termId];
     if (currentOrder == null) {
@@ -232,15 +257,13 @@ class CourseRecommendationService {
         );
       }
       if (order > currentOrder) continue;
-      final wasCancelled =
-          attempt.status == 'CANCELLED' ||
+      final wasCancelled = attempt.status == 'CANCELLED' ||
           attempt.status == 'SECTION_CANCELLED';
       if (wasCancelled) continue;
 
       if (order == currentOrder) takenThisTerm.add(attempt.courseId);
 
-      final published =
-          attempt.status == 'COMPLETED' &&
+      final published = attempt.status == 'COMPLETED' &&
           attempt.gradeStatus == 'PUBLISHED' &&
           attempt.hasPublishedAt;
       if (published && attempt.resultStatus == 'PASSED') {
@@ -255,8 +278,11 @@ class CourseRecommendationService {
     }
 
     // Không đếm trùng các con cháu xuất hiện trên nhiều đường đi.
+    // Chưa có hạn mức chọn 3/6 hoặc 2/4 trên CurriculumGroup.
+    // Không dùng các ứng viên tự chọn chưa xác nhận để chấm điểm ưu tiên.
+    final priorityCourseIds = input.requiredCourseIds ?? input.curriculumCourseIds;
     final graph = PrerequisiteDependencyGraph(
-      courseIds: input.curriculumCourseIds,
+      courseIds: priorityCourseIds,
       edges: input.prerequisites,
     );
     final scores = graph.countUnfinishedDependents(passedUntilNow);
@@ -275,8 +301,7 @@ class CourseRecommendationService {
     final prerequisitesByCourse = <int, Set<int>>{};
     for (final edge in input.prerequisites) {
       if (!input.curriculumCourseIds.contains(edge.courseId)) continue;
-      prerequisitesByCourse
-          .putIfAbsent(edge.courseId, () => <int>{})
+      prerequisitesByCourse.putIfAbsent(edge.courseId, () => <int>{})
           .add(edge.prerequisiteCourseId);
     }
 
@@ -287,6 +312,10 @@ class CourseRecommendationService {
       final course = courseById[courseId]!;
       final reasons = <String>[];
       if (!course.isActive) reasons.add('INACTIVE_COURSE');
+      if (input.requiredCourseIds != null &&
+          !input.requiredCourseIds!.contains(courseId)) {
+        reasons.add('ELECTIVE_RULES_NOT_CONFIGURED');
+      }
       if (passedUntilNow.contains(courseId)) reasons.add('ALREADY_PASSED');
       if (takenThisTerm.contains(courseId)) {
         reasons.add('ALREADY_TAKEN_THIS_TERM');
@@ -296,8 +325,7 @@ class CourseRecommendationService {
         reasons.add('UNRESOLVED_ENROLLMENT');
       }
 
-      final allSections =
-          sectionsByCourse[courseId] ?? const <SectionSnapshot>[];
+      final allSections = sectionsByCourse[courseId] ?? const <SectionSnapshot>[];
       if (allSections.isEmpty) reasons.add('NOT_OFFERED_THIS_PHASE');
       final freeSections = allSections
           .where((s) => s.capacity > s.enrolledCount)
@@ -306,41 +334,36 @@ class CourseRecommendationService {
         reasons.add('NO_AVAILABLE_SEATS');
       }
 
-      final missingPrerequisites =
-          (prerequisitesByCourse[courseId] ?? <int>{})
-              .difference(passedBefore)
-              .toList()
-            ..sort();
+      final missingPrerequisites = (prerequisitesByCourse[courseId] ?? <int>{})
+          .difference(passedBefore)
+          .toList()
+        ..sort();
       if (missingPrerequisites.isNotEmpty) {
         reasons.add('PREREQUISITE_NOT_PASSED_PREVIOUS_TERM');
       }
 
       if (reasons.isNotEmpty) {
-        excluded.add(
-          ExcludedCourse(
-            courseId: courseId,
-            courseCode: course.code,
-            reasons: reasons,
-            missingPrerequisiteCourseIds: missingPrerequisites,
-          ),
-        );
+        excluded.add(ExcludedCourse(
+          courseId: courseId,
+          courseCode: course.code,
+          reasons: reasons,
+          missingPrerequisiteCourseIds: missingPrerequisites,
+        ));
         continue;
       }
 
       final counts = scores[courseId]!;
-      ranked.add(
-        RecommendedCourse(
-          courseId: courseId,
-          courseCode: course.code,
-          courseName: course.name,
-          credits: course.credits,
-          isRetake: failedBefore.contains(courseId),
-          directDependents: counts.direct,
-          indirectDependents: counts.indirect,
-          dependentCount: counts.total,
-          sectionIds: freeSections.map((s) => s.id).toList()..sort(),
-        ),
-      );
+      ranked.add(RecommendedCourse(
+        courseId: courseId,
+        courseCode: course.code,
+        courseName: course.name,
+        credits: course.credits,
+        isRetake: failedBefore.contains(courseId),
+        directDependents: counts.direct,
+        indirectDependents: counts.indirect,
+        dependentCount: counts.total,
+        sectionIds: freeSections.map((s) => s.id).toList()..sort(),
+      ));
     }
 
     ranked.sort((a, b) {
@@ -438,6 +461,9 @@ class RecommendationSnapshot {
   final int termId;
   final int teachingPhase;
   final Set<int> curriculumCourseIds;
+  /// Null trong unit test cũ; khi lấy DB phải truyền danh sách bắt buộc.
+  /// Những môn tự chọn đang chờ cấu hình hạn mức sẽ bị loại khỏi gợi ý tự động.
+  final Set<int>? requiredCourseIds;
   final Map<int, int> termOrderById;
   final List<CourseSnapshot> courses;
   final List<SectionSnapshot> sections;
@@ -448,6 +474,7 @@ class RecommendationSnapshot {
     required this.termId,
     required this.teachingPhase,
     required this.curriculumCourseIds,
+    this.requiredCourseIds,
     required this.termOrderById,
     required this.courses,
     required this.sections,
@@ -508,10 +535,8 @@ class PrerequisiteDependencyGraph {
               .where((id) => !passed.contains(id))
               .length,
           indirect: descendants(courseId)
-              .where(
-                (id) =>
-                    !passed.contains(id) && !children[courseId]!.contains(id),
-              )
+              .where((id) => !passed.contains(id) &&
+                  !children[courseId]!.contains(id))
               .length,
         ),
     };
@@ -543,17 +568,17 @@ class RecommendedCourse {
   });
 
   Map<String, dynamic> toJson() => {
-    'courseId': courseId,
-    'courseCode': courseCode,
-    'courseName': courseName,
-    'credits': credits,
-    'isRetake': isRetake,
-    'directDependents': directDependents,
-    'indirectDependents': indirectDependents,
-    'dependentCount': dependentCount,
-    'priorityGroup': priorityGroup,
-    'sectionIds': sectionIds,
-  };
+        'courseId': courseId,
+        'courseCode': courseCode,
+        'courseName': courseName,
+        'credits': credits,
+        'isRetake': isRetake,
+        'directDependents': directDependents,
+        'indirectDependents': indirectDependents,
+        'dependentCount': dependentCount,
+        'priorityGroup': priorityGroup,
+        'sectionIds': sectionIds,
+      };
 }
 
 class ExcludedCourse {
@@ -568,11 +593,11 @@ class ExcludedCourse {
     required this.missingPrerequisiteCourseIds,
   });
   Map<String, dynamic> toJson() => {
-    'courseId': courseId,
-    'courseCode': courseCode,
-    'reasons': reasons,
-    'missingPrerequisiteCourseIds': missingPrerequisiteCourseIds,
-  };
+        'courseId': courseId,
+        'courseCode': courseCode,
+        'reasons': reasons,
+        'missingPrerequisiteCourseIds': missingPrerequisiteCourseIds,
+      };
 }
 
 class RecommendationResult {
@@ -589,10 +614,10 @@ class RecommendationResult {
     required this.excluded,
   });
   Map<String, dynamic> toJson() => {
-    'studentId': studentId,
-    'termId': termId,
-    'teachingPhase': teachingPhase,
-    'recommendations': recommendations.map((c) => c.toJson()).toList(),
-    'excluded': excluded.map((c) => c.toJson()).toList(),
-  };
+        'studentId': studentId,
+        'termId': termId,
+        'teachingPhase': teachingPhase,
+        'recommendations': recommendations.map((c) => c.toJson()).toList(),
+        'excluded': excluded.map((c) => c.toJson()).toList(),
+      };
 }
