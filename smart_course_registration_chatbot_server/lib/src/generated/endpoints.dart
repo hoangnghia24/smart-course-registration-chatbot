@@ -18,16 +18,14 @@ import '../endpoints/admin_account_endpoint.dart' as _i4;
 import '../endpoints/chatbot_endpoint.dart' as _i5;
 import '../endpoints/course_endpoint.dart' as _i6;
 import '../endpoints/email_idp_endpoint.dart' as _i7;
-import '../endpoints/google_idp_endpoint.dart' as _i8;
-import '../endpoints/jwt_refresh_endpoint.dart' as _i9;
-import '../endpoints/student_endpoint.dart' as _i10;
-import '../greetings/greeting_endpoint.dart' as _i11;
+import '../endpoints/student_endpoint.dart' as _i8;
+import '../greetings/greeting_endpoint.dart' as _i9;
 import 'package:smart_course_registration_chatbot_server/src/generated/course_dto.dart'
-    as _i12;
+    as _i10;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i13;
+    as _i11;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i14;
+    as _i12;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -69,25 +67,13 @@ class Endpoints extends _i1.EndpointDispatch {
           'emailIdp',
           null,
         ),
-      'googleIdp': _i8.GoogleIdpEndpoint()
-        ..initialize(
-          server,
-          'googleIdp',
-          null,
-        ),
-      'jwtRefresh': _i9.JwtRefreshEndpoint()
-        ..initialize(
-          server,
-          'jwtRefresh',
-          null,
-        ),
-      'student': _i10.StudentEndpoint()
+      'student': _i8.StudentEndpoint()
         ..initialize(
           server,
           'student',
           null,
         ),
-      'greeting': _i11.GreetingEndpoint()
+      'greeting': _i9.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
@@ -236,7 +222,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i12.CourseDto>(),
+              type: _i1.getType<_i10.CourseDto>(),
               nullable: false,
             ),
           },
@@ -255,7 +241,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i12.CourseDto>(),
+              type: _i1.getType<_i10.CourseDto>(),
               nullable: false,
             ),
           },
@@ -519,72 +505,6 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    connectors['googleIdp'] = _i1.EndpointConnector(
-      name: 'googleIdp',
-      endpoint: endpoints['googleIdp']!,
-      methodConnectors: {
-        'login': _i1.MethodConnector(
-          name: 'login',
-          params: {
-            'idToken': _i1.ParameterDescription(
-              name: 'idToken',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'accessToken': _i1.ParameterDescription(
-              name: 'accessToken',
-              type: _i1.getType<String?>(),
-              nullable: true,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['googleIdp'] as _i8.GoogleIdpEndpoint).login(
-                    session,
-                    idToken: params['idToken'],
-                    accessToken: params['accessToken'],
-                  ),
-        ),
-        'hasAccount': _i1.MethodConnector(
-          name: 'hasAccount',
-          params: {},
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['googleIdp'] as _i8.GoogleIdpEndpoint)
-                  .hasAccount(session),
-        ),
-      },
-    );
-    connectors['jwtRefresh'] = _i1.EndpointConnector(
-      name: 'jwtRefresh',
-      endpoint: endpoints['jwtRefresh']!,
-      methodConnectors: {
-        'refreshAccessToken': _i1.MethodConnector(
-          name: 'refreshAccessToken',
-          params: {
-            'refreshToken': _i1.ParameterDescription(
-              name: 'refreshToken',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['jwtRefresh'] as _i9.JwtRefreshEndpoint)
-                  .refreshAccessToken(
-                    session,
-                    refreshToken: params['refreshToken'],
-                  ),
-        ),
-      },
-    );
     connectors['student'] = _i1.EndpointConnector(
       name: 'student',
       endpoint: endpoints['student']!,
@@ -596,7 +516,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['student'] as _i10.StudentEndpoint)
+              ) async => (endpoints['student'] as _i8.StudentEndpoint)
                   .getMyCurriculum(session),
         ),
       },
@@ -618,16 +538,16 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i11.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i9.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i13.Endpoints()
+    modules['serverpod_auth_idp'] = _i11.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i14.Endpoints()
+    modules['serverpod_auth_core'] = _i12.Endpoints()
       ..initializeEndpoints(server);
   }
 }
