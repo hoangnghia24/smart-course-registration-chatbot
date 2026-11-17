@@ -18,6 +18,7 @@ abstract class CourseSection implements _i1.SerializableModel {
     this.id,
     required this.courseId,
     required this.termId,
+    required this.teachingPhase,
     required this.lecturerId,
     required this.sectionCode,
     required this.capacity,
@@ -30,6 +31,7 @@ abstract class CourseSection implements _i1.SerializableModel {
     int? id,
     required int courseId,
     required int termId,
+    required int teachingPhase,
     required int lecturerId,
     required String sectionCode,
     required int capacity,
@@ -43,6 +45,7 @@ abstract class CourseSection implements _i1.SerializableModel {
       id: jsonSerialization['id'] as int?,
       courseId: jsonSerialization['courseId'] as int,
       termId: jsonSerialization['termId'] as int,
+      teachingPhase: jsonSerialization['teachingPhase'] as int,
       lecturerId: jsonSerialization['lecturerId'] as int,
       sectionCode: jsonSerialization['sectionCode'] as String,
       capacity: jsonSerialization['capacity'] as int,
@@ -64,6 +67,9 @@ abstract class CourseSection implements _i1.SerializableModel {
 
   /// Hoc ky mo lop
   int termId;
+
+  /// đợt học chỉ nhận 1 hoặc 2
+  int teachingPhase;
 
   /// Giang vien duoc phan cong
   int lecturerId;
@@ -91,6 +97,7 @@ abstract class CourseSection implements _i1.SerializableModel {
     int? id,
     int? courseId,
     int? termId,
+    int? teachingPhase,
     int? lecturerId,
     String? sectionCode,
     int? capacity,
@@ -105,6 +112,7 @@ abstract class CourseSection implements _i1.SerializableModel {
       if (id != null) 'id': id,
       'courseId': courseId,
       'termId': termId,
+      'teachingPhase': teachingPhase,
       'lecturerId': lecturerId,
       'sectionCode': sectionCode,
       'capacity': capacity,
@@ -127,6 +135,7 @@ class _CourseSectionImpl extends CourseSection {
     int? id,
     required int courseId,
     required int termId,
+    required int teachingPhase,
     required int lecturerId,
     required String sectionCode,
     required int capacity,
@@ -137,6 +146,7 @@ class _CourseSectionImpl extends CourseSection {
          id: id,
          courseId: courseId,
          termId: termId,
+         teachingPhase: teachingPhase,
          lecturerId: lecturerId,
          sectionCode: sectionCode,
          capacity: capacity,
@@ -153,6 +163,7 @@ class _CourseSectionImpl extends CourseSection {
     Object? id = _Undefined,
     int? courseId,
     int? termId,
+    int? teachingPhase,
     int? lecturerId,
     String? sectionCode,
     int? capacity,
@@ -164,6 +175,7 @@ class _CourseSectionImpl extends CourseSection {
       id: id is int? ? id : this.id,
       courseId: courseId ?? this.courseId,
       termId: termId ?? this.termId,
+      teachingPhase: teachingPhase ?? this.teachingPhase,
       lecturerId: lecturerId ?? this.lecturerId,
       sectionCode: sectionCode ?? this.sectionCode,
       capacity: capacity ?? this.capacity,

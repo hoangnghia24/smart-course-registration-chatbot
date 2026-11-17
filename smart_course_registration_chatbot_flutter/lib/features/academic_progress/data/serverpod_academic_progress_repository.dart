@@ -4,9 +4,10 @@ import 'academic_progress_repository.dart';
 
 /// Nhận lại cùng Client đã có session từ F01.
 /// Không tạo Client/phiên đăng nhập mới và không dùng dữ liệu giả runtime.
-class ServerpodAcademicProgressRepository implements AcademicProgressRepository {
+class ServerpodAcademicProgressRepository
+    implements AcademicProgressRepository {
   ServerpodAcademicProgressRepository(Client client)
-      : _getProgress = client.academic.getMyProgress;
+    : _getProgress = client.academic.getMyProgress;
 
   const ServerpodAcademicProgressRepository.fromRpc(this._getProgress);
 
@@ -17,24 +18,27 @@ class ServerpodAcademicProgressRepository implements AcademicProgressRepository 
     final dto = await _getProgress();
     if (dto == null) return null;
 
-    final mapped = dto.courses.map((item) {
-      return AcademicCourseProgress(
-        code: item.course.code,
-        name: item.course.name,
-        credits: item.course.credits,
-        semester: _intOrNull(item.semester),
-        isRequired: item.isRequired,
-        groupCode: item.groupCode,
-        groupName: item.groupName,
-        groupOrder: _intOrNull(item.groupOrder),
-        itemOrder: _intOrNull(item.itemOrder),
-        status: item.status,
-        statusDetail: item.statusDetail,
-        score: _doubleOrNull(item.score),
-        scoreStatus: item.scoreStatus,
-      );
-    }).toList(growable: false)
-      ..sort(_compareCourses);
+    final mapped =
+        dto.courses
+            .map((item) {
+              return AcademicCourseProgress(
+                code: item.course.code,
+                name: item.course.name,
+                credits: item.course.credits,
+                semester: _intOrNull(item.semester),
+                isRequired: item.isRequired,
+                groupCode: item.groupCode,
+                groupName: item.groupName,
+                groupOrder: _intOrNull(item.groupOrder),
+                itemOrder: _intOrNull(item.itemOrder),
+                status: item.status,
+                statusDetail: item.statusDetail,
+                score: _doubleOrNull(item.score),
+                scoreStatus: item.scoreStatus,
+              );
+            })
+            .toList(growable: false)
+          ..sort(_compareCourses);
 
     return AcademicProgressDetails(
       curriculumVersionId: _intOrNull(dto.curriculumVersionId),
@@ -59,8 +63,9 @@ int _compareCourses(AcademicCourseProgress a, AcademicCourseProgress b) {
   if (aHasGroup != bHasGroup) return aHasGroup ? -1 : 1;
   final byGroup = (a.groupOrder ?? last).compareTo(b.groupOrder ?? last);
   if (byGroup != 0) return byGroup;
-  final byGroupName = (a.groupCode ?? a.groupName ?? '')
-      .compareTo(b.groupCode ?? b.groupName ?? '');
+  final byGroupName = (a.groupCode ?? a.groupName ?? '').compareTo(
+    b.groupCode ?? b.groupName ?? '',
+  );
   if (byGroupName != 0) return byGroupName;
   final byItem = (a.itemOrder ?? last).compareTo(b.itemOrder ?? last);
   if (byItem != 0) return byItem;

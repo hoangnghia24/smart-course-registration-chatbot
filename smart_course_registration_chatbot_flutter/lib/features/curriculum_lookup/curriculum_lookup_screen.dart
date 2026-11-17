@@ -72,14 +72,14 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
       setState(() {
         _loading = false;
         _details = null;
-        _error = code.contains('AUTH_REQUIRED') ||
-                code.contains('UNAUTHENTICATED')
+        _error =
+            code.contains('AUTH_REQUIRED') || code.contains('UNAUTHENTICATED')
             ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
             : code.contains('FORBIDDEN') ||
-                    code.contains('ACCOUNT_NOT_PROVISIONED') ||
-                    code.contains('ACCOUNT_INACTIVE')
-                ? 'Tài khoản không có quyền xem chương trình đào tạo này.'
-                : 'Không tải được chương trình đào tạo. Hãy kiểm tra kết nối và thử lại.';
+                  code.contains('ACCOUNT_NOT_PROVISIONED') ||
+                  code.contains('ACCOUNT_INACTIVE')
+            ? 'Tài khoản không có quyền xem chương trình đào tạo này.'
+            : 'Không tải được chương trình đào tạo. Hãy kiểm tra kết nối và thử lại.';
       });
     }
   }
@@ -133,7 +133,8 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
       return _message(
         keyName: 'f04-unassigned',
         icon: Icons.assignment_late_outlined,
-        message: 'Sinh viên chưa được gán chương trình đào tạo hoặc dữ liệu CTĐT chưa đầy đủ.',
+        message:
+            'Sinh viên chưa được gán chương trình đào tạo hoặc dữ liệu CTĐT chưa đầy đủ.',
         retry: true,
       );
     }
@@ -144,8 +145,7 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
         _CourseFilter.mandatory => course.isRequired,
         _CourseFilter.elective => !course.isRequired,
       };
-    }).toList()
-      ..sort(_compareByKnowledgeGroup);
+    }).toList()..sort(_compareByKnowledgeGroup);
 
     // Dùng groupCode/groupName thực từ API. Nếu thiếu, chỉ dựa vào semester
     // được API trả về làm NHÓM DỰ PHÒNG và ghi rõ "chưa phân nhóm".
@@ -160,17 +160,20 @@ class _CurriculumLookupScreenState extends State<CurriculumLookupScreen> {
       final title = hasGroup
           ? (name.isNotEmpty ? name : code)
           : (course.semester > 0
-              ? 'Học kỳ ${course.semester} (chưa phân nhóm)'
-              : 'Chưa phân nhóm kiến thức');
-      groupMap.putIfAbsent(
-        id,
-        () => _KnowledgeGroup(
-          id: id,
-          title: title,
-          order: course.groupOrder,
-          isFallback: !hasGroup,
-        ),
-      ).courses.add(course);
+                ? 'Học kỳ ${course.semester} (chưa phân nhóm)'
+                : 'Chưa phân nhóm kiến thức');
+      groupMap
+          .putIfAbsent(
+            id,
+            () => _KnowledgeGroup(
+              id: id,
+              title: title,
+              order: course.groupOrder,
+              isFallback: !hasGroup,
+            ),
+          )
+          .courses
+          .add(course);
     }
     final groups = groupMap.values.toList()
       ..sort((a, b) {
@@ -411,7 +414,10 @@ class _ProgressUnavailableCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: _Palette.greenSoft,
                   borderRadius: BorderRadius.circular(20),
@@ -578,8 +584,11 @@ class _CourseLine extends StatelessWidget {
               color: _Palette.blueSoft,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.menu_book_outlined,
-                color: _Palette.accent, size: 15),
+            child: const Icon(
+              Icons.menu_book_outlined,
+              color: _Palette.accent,
+              size: 15,
+            ),
           ),
           const SizedBox(width: 9),
           Expanded(

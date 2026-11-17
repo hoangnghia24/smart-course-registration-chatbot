@@ -35,7 +35,10 @@ class F01AuthController extends ChangeNotifier {
   }
 
   /// Trả null nếu thành công; ngược lại trả thông báo để hiển thị ngay trên UI.
-  Future<String?> signIn({required String email, required String password}) async {
+  Future<String?> signIn({
+    required String email,
+    required String password,
+  }) async {
     if (_isBusy) return null;
     _isBusy = true;
     _error = null;
@@ -58,7 +61,8 @@ class F01AuthController extends ChangeNotifier {
       };
       return _error;
     } catch (_) {
-      _error = 'Không thể đăng nhập. Kiểm tra email, mật khẩu và kết nối máy chủ.';
+      _error =
+          'Không thể đăng nhập. Kiểm tra email, mật khẩu và kết nối máy chủ.';
       return _error;
     } finally {
       _isBusy = false;

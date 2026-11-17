@@ -8,6 +8,9 @@ fields:
   ### Hoc ky mo lop
   termId: int, relation(parent=app_academic_term)
 
+  ### đợt học chỉ nhận 1 hoặc 2
+  teachingPhase: int
+
   ### Giang vien duoc phan cong
   lecturerId: int, relation(parent=app_lecturer)
 

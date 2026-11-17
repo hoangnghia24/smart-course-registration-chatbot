@@ -173,39 +173,39 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
         }
       },
       trailing: PopupMenuButton<ChatbotPreviewState>(
-            key: const Key('chatbot_state_menu'),
-            tooltip: 'Xem trạng thái kiểm thử',
-            icon: const Icon(Icons.more_vert_rounded, color: _muted),
-            onSelected: (value) {
-              setState(() => _previewState = value);
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: ChatbotPreviewState.initial,
-                child: Text('Trở về màn hình mẫu'),
-              ),
-              PopupMenuItem(
-                value: ChatbotPreviewState.loading,
-                child: Text('Đang tải'),
-              ),
-              PopupMenuItem(
-                value: ChatbotPreviewState.sourcedSample,
-                child: Text('Có nguồn minh họa'),
-              ),
-              PopupMenuItem(
-                value: ChatbotPreviewState.noEvidence,
-                child: Text('Thiếu căn cứ'),
-              ),
-              PopupMenuItem(
-                value: ChatbotPreviewState.timeout,
-                child: Text('Hết thời gian chờ'),
-              ),
-              PopupMenuItem(
-                value: ChatbotPreviewState.offline,
-                child: Text('Mất mạng'),
-              ),
-            ],
+        key: const Key('chatbot_state_menu'),
+        tooltip: 'Xem trạng thái kiểm thử',
+        icon: const Icon(Icons.more_vert_rounded, color: _muted),
+        onSelected: (value) {
+          setState(() => _previewState = value);
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(
+            value: ChatbotPreviewState.initial,
+            child: Text('Trở về màn hình mẫu'),
           ),
+          PopupMenuItem(
+            value: ChatbotPreviewState.loading,
+            child: Text('Đang tải'),
+          ),
+          PopupMenuItem(
+            value: ChatbotPreviewState.sourcedSample,
+            child: Text('Có nguồn minh họa'),
+          ),
+          PopupMenuItem(
+            value: ChatbotPreviewState.noEvidence,
+            child: Text('Thiếu căn cứ'),
+          ),
+          PopupMenuItem(
+            value: ChatbotPreviewState.timeout,
+            child: Text('Hết thời gian chờ'),
+          ),
+          PopupMenuItem(
+            value: ChatbotPreviewState.offline,
+            child: Text('Mất mạng'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -277,8 +277,8 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   }
 
   Widget _buildUserSampleMessage() => _buildUserMessage(
-        'Gợi ý môn học chuyên ngành phù hợp với định hướng làm Mobile App.',
-      );
+    'Gợi ý môn học chuyên ngành phù hợp với định hướng làm Mobile App.',
+  );
 
   Widget _buildUserMessage(String message) {
     return Align(
@@ -310,7 +310,8 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
         style: TextStyle(fontSize: 14, height: 1.48, color: _darkText),
         children: [
           TextSpan(
-            text: 'Bạn đạt 9.0 môn Lập trình Hướng đối tượng. '
+            text:
+                'Bạn đạt 9.0 môn Lập trình Hướng đối tượng. '
                 'Với định hướng Mobile App, mình gợi ý môn ',
           ),
           TextSpan(

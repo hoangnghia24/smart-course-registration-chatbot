@@ -19,6 +19,7 @@ abstract class CourseSection
     this.id,
     required this.courseId,
     required this.termId,
+    required this.teachingPhase,
     required this.lecturerId,
     required this.sectionCode,
     required this.capacity,
@@ -31,6 +32,7 @@ abstract class CourseSection
     int? id,
     required int courseId,
     required int termId,
+    required int teachingPhase,
     required int lecturerId,
     required String sectionCode,
     required int capacity,
@@ -44,6 +46,7 @@ abstract class CourseSection
       id: jsonSerialization['id'] as int?,
       courseId: jsonSerialization['courseId'] as int,
       termId: jsonSerialization['termId'] as int,
+      teachingPhase: jsonSerialization['teachingPhase'] as int,
       lecturerId: jsonSerialization['lecturerId'] as int,
       sectionCode: jsonSerialization['sectionCode'] as String,
       capacity: jsonSerialization['capacity'] as int,
@@ -67,6 +70,9 @@ abstract class CourseSection
 
   /// Hoc ky mo lop
   int termId;
+
+  /// đợt học chỉ nhận 1 hoặc 2
+  int teachingPhase;
 
   /// Giang vien duoc phan cong
   int lecturerId;
@@ -97,6 +103,7 @@ abstract class CourseSection
     int? id,
     int? courseId,
     int? termId,
+    int? teachingPhase,
     int? lecturerId,
     String? sectionCode,
     int? capacity,
@@ -111,6 +118,7 @@ abstract class CourseSection
       if (id != null) 'id': id,
       'courseId': courseId,
       'termId': termId,
+      'teachingPhase': teachingPhase,
       'lecturerId': lecturerId,
       'sectionCode': sectionCode,
       'capacity': capacity,
@@ -127,6 +135,7 @@ abstract class CourseSection
       if (id != null) 'id': id,
       'courseId': courseId,
       'termId': termId,
+      'teachingPhase': teachingPhase,
       'lecturerId': lecturerId,
       'sectionCode': sectionCode,
       'capacity': capacity,
@@ -173,6 +182,7 @@ class _CourseSectionImpl extends CourseSection {
     int? id,
     required int courseId,
     required int termId,
+    required int teachingPhase,
     required int lecturerId,
     required String sectionCode,
     required int capacity,
@@ -183,6 +193,7 @@ class _CourseSectionImpl extends CourseSection {
          id: id,
          courseId: courseId,
          termId: termId,
+         teachingPhase: teachingPhase,
          lecturerId: lecturerId,
          sectionCode: sectionCode,
          capacity: capacity,
@@ -199,6 +210,7 @@ class _CourseSectionImpl extends CourseSection {
     Object? id = _Undefined,
     int? courseId,
     int? termId,
+    int? teachingPhase,
     int? lecturerId,
     String? sectionCode,
     int? capacity,
@@ -210,6 +222,7 @@ class _CourseSectionImpl extends CourseSection {
       id: id is int? ? id : this.id,
       courseId: courseId ?? this.courseId,
       termId: termId ?? this.termId,
+      teachingPhase: teachingPhase ?? this.teachingPhase,
       lecturerId: lecturerId ?? this.lecturerId,
       sectionCode: sectionCode ?? this.sectionCode,
       capacity: capacity ?? this.capacity,
@@ -232,6 +245,11 @@ class CourseSectionUpdateTable extends _i1.UpdateTable<CourseSectionTable> {
 
   _i1.ColumnValue<int, int> termId(int value) => _i1.ColumnValue(
     table.termId,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> teachingPhase(int value) => _i1.ColumnValue(
+    table.teachingPhase,
     value,
   );
 
@@ -279,6 +297,10 @@ class CourseSectionTable extends _i1.Table<int?> {
       'termId',
       this,
     );
+    teachingPhase = _i1.ColumnInt(
+      'teachingPhase',
+      this,
+    );
     lecturerId = _i1.ColumnInt(
       'lecturerId',
       this,
@@ -313,6 +335,9 @@ class CourseSectionTable extends _i1.Table<int?> {
   /// Hoc ky mo lop
   late final _i1.ColumnInt termId;
 
+  /// đợt học chỉ nhận 1 hoặc 2
+  late final _i1.ColumnInt teachingPhase;
+
   /// Giang vien duoc phan cong
   late final _i1.ColumnInt lecturerId;
 
@@ -337,6 +362,7 @@ class CourseSectionTable extends _i1.Table<int?> {
     id,
     courseId,
     termId,
+    teachingPhase,
     lecturerId,
     sectionCode,
     capacity,

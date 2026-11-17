@@ -82,9 +82,14 @@ void main() {
     expect(find.text('Bản 2026'), findsOneWidget);
     expect(find.text('Khối kiến thức đại cương'), findsOneWidget);
     expect(find.text('Nhập môn lập trình'), findsOneWidget);
-    expect(find.textContaining('CS101 · 3 TC · Bắt buộc · HK 1'), findsOneWidget);
-    expect(find.byKey(const ValueKey('f04-progress-placeholder')),
-        findsOneWidget);
+    expect(
+      find.textContaining('CS101 · 3 TC · Bắt buộc · HK 1'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('f04-progress-placeholder')),
+      findsOneWidget,
+    );
     expect(find.text('Chưa có dữ liệu tiến độ học tập'), findsOneWidget);
     expect(find.textContaining('57%'), findsNothing);
   });
@@ -108,17 +113,18 @@ void main() {
 
   testWidgets('F04 có trạng thái loading', (tester) async {
     final completer = Completer<CurriculumDetails?>();
-    await tester.pumpWidget(MaterialApp(
-      home: CurriculumLookupScreen(
-        repository: _FakeRepository(() => completer.future),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CurriculumLookupScreen(
+          repository: _FakeRepository(() => completer.future),
+        ),
       ),
-    ));
+    );
     await tester.pump();
     expect(find.byKey(const ValueKey('f04-loading')), findsOneWidget);
     completer.complete(_testCurriculum);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('f04-curriculum-name')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('f04-curriculum-name')), findsOneWidget);
   });
 
   testWidgets('F04 thông báo chưa gán CTĐT', (tester) async {
@@ -150,8 +156,9 @@ void main() {
     expect(find.text('Công nghệ thông tin'), findsNothing);
   });
 
-  testWidgets('F04 nhóm theo khối kiến thức và không gộp theo học kỳ',
-      (tester) async {
+  testWidgets('F04 nhóm theo khối kiến thức và không gộp theo học kỳ', (
+    tester,
+  ) async {
     await _render(tester, _FakeRepository(() async => _testCurriculum));
     expect(find.text('Khối kiến thức đại cương'), findsOneWidget);
     expect(find.byKey(const ValueKey('f04-group-group:DC')), findsOneWidget);
@@ -171,8 +178,9 @@ void main() {
     expect(find.text('Cơ sở dữ liệu'), findsOneWidget);
   });
 
-  testWidgets('F04 chưa có nhóm thì hiện chú thích không tự đoán nhóm',
-      (tester) async {
+  testWidgets('F04 chưa có nhóm thì hiện chú thích không tự đoán nhóm', (
+    tester,
+  ) async {
     const noGroup = CurriculumDetails(
       code: 'CNTT',
       name: 'Công nghệ thông tin',

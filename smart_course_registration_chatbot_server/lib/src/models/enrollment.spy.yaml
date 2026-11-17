@@ -21,11 +21,17 @@ fields:
   ### ENROLLED, CANCELLED, SECTION_CANCELLED, COMPLETED
   status: String
 
+  ### Thời điểm đăng ký
+  registrationOrigin: RegistrationOrigin
+
   ### Thoi gian dang ky
   registeredAt: DateTime
 
   ### Thoi gian huy dang ky
   cancelledAt: DateTime?
+
+  ### Thời gian giảng viên hoàn tất gửi điểm số
+  submittedAt: DateTime?
 
   ### Diem so
   score: double?

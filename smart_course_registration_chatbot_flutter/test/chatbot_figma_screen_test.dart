@@ -24,7 +24,8 @@ void main() {
     expect(
       target,
       findsOneWidget,
-      reason: 'Không tìm thấy phần tử dù đã cuộn hết hội thoại. '
+      reason:
+          'Không tìm thấy phần tử dù đã cuộn hết hội thoại. '
           'Khi đó cần kiểm tra UI/state, không được xóa assertion.',
     );
   }
@@ -39,7 +40,8 @@ void main() {
   testWidgets('có đề xuất môn học và thông tin minh họa', (tester) async {
     await loadScreen(tester);
     await scrollToConversationItem(
-      tester, find.byKey(const Key('sample_course_card')),
+      tester,
+      find.byKey(const Key('sample_course_card')),
     );
     expect(find.byKey(const Key('sample_course_card')), findsOneWidget);
     expect(find.text('Lập trình Di động'), findsWidgets);
@@ -74,7 +76,8 @@ void main() {
     await tester.tap(find.byKey(const Key('chatbot_send_button')));
     await tester.pump(const Duration(milliseconds: 350));
     await scrollToConversationItem(
-      tester, find.byKey(const Key('no_evidence_message')),
+      tester,
+      find.byKey(const Key('no_evidence_message')),
     );
     expect(find.text('Học phần này còn chỗ không?'), findsOneWidget);
     expect(find.byKey(const Key('no_evidence_message')), findsOneWidget);
@@ -137,7 +140,8 @@ void main() {
   testWidgets('ấn đăng ký không thực hiện ghi danh', (tester) async {
     await loadScreen(tester);
     await scrollToConversationItem(
-      tester, find.byKey(const Key('sample_register_button')),
+      tester,
+      find.byKey(const Key('sample_register_button')),
     );
     await tester.ensureVisible(
       find.byKey(const Key('sample_register_button')),
@@ -145,7 +149,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('sample_register_button')));
     await tester.pump();
-    expect(find.textContaining('Chatbot không đăng ký học phần'), findsOneWidget);
+    expect(
+      find.textContaining('Chatbot không đăng ký học phần'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('giao diện có thể cuộn trên màn hình nhỏ', (tester) async {

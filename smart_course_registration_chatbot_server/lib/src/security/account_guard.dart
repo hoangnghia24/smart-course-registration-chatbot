@@ -67,4 +67,65 @@ class AccountGuard {
 
     return account;
   }
+
+  /// Xác định ID sinh viên đang đăng nhập
+  static Future<int> requireStudentId(Session session) async {
+    final account = await requireRole(
+      session,
+      allowedRoles: {AccountRole.student},
+    );
+
+    final student = await Student.db.findFirstRow(
+      session,
+      where: (t) => t.userAccountId.equals(account.id!),
+    );
+
+    if (student?.id == null) {
+      throw AppException(
+        code: 'STUDENT_NOT_FOUND',
+        message: 'Không tìm thấy hồ sơ sinh viên.',
+      );
+    }
+
+    return student!.id!;
+  }
+
+  /// Xác định ID giảng viên đang đăng nhập
+  static Future<int> requireLecturerId(Session session) async {
+    final account = await requireRole(
+      session,
+      allowedRoles: {AccountRole.lecturer},
+    );
+
+    final lecturer = await Lecturer.db.findFirstRow(
+      session,
+      where: (t) => t.userAccountId.equals(account.id!),
+    );
+
+    if (lecturer?.id == null) {
+      throw AppException(
+        code: 'LECTURER_NOT_FOUND',
+        message: 'Không tìm thấy hồ sơ giảng viên.',
+      );
+    }
+
+    return lecturer!.id!;
+  }
+
+  /// Xác định ID quản trị viên đang đăng nhập
+  static Future<int> requireAdminId(Session session) async {
+    final account = await requireRole(
+      session,
+      allowedRoles: {AccountRole.admin},
+    );
+
+    if (account.id == null) {
+      throw AppException(
+        code: 'ADMIN_NOT_FOUND',
+        message: 'Không tìm thấy tài khoản quản trị viên.',
+      );
+    }
+
+    return account.id!;
+  }
 }

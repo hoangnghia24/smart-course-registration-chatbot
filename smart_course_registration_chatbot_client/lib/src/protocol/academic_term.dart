@@ -20,6 +20,8 @@ abstract class AcademicTerm implements _i1.SerializableModel {
     required this.termName,
     required this.status,
     required this.maxCreditsPerTerm,
+    required this.startAt,
+    required this.endAt,
   });
 
   factory AcademicTerm({
@@ -28,6 +30,8 @@ abstract class AcademicTerm implements _i1.SerializableModel {
     required String termName,
     required String status,
     required double maxCreditsPerTerm,
+    required DateTime startAt,
+    required DateTime endAt,
   }) = _AcademicTermImpl;
 
   factory AcademicTerm.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -38,6 +42,8 @@ abstract class AcademicTerm implements _i1.SerializableModel {
       status: jsonSerialization['status'] as String,
       maxCreditsPerTerm: (jsonSerialization['maxCreditsPerTerm'] as num)
           .toDouble(),
+      startAt: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['startAt']),
+      endAt: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['endAt']),
     );
   }
 
@@ -54,6 +60,11 @@ abstract class AcademicTerm implements _i1.SerializableModel {
 
   double maxCreditsPerTerm;
 
+  /// thời gian bắt đầu và kết thúc học kỳ
+  DateTime startAt;
+
+  DateTime endAt;
+
   /// Returns a shallow copy of this [AcademicTerm]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -63,6 +74,8 @@ abstract class AcademicTerm implements _i1.SerializableModel {
     String? termName,
     String? status,
     double? maxCreditsPerTerm,
+    DateTime? startAt,
+    DateTime? endAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -73,6 +86,8 @@ abstract class AcademicTerm implements _i1.SerializableModel {
       'termName': termName,
       'status': status,
       'maxCreditsPerTerm': maxCreditsPerTerm,
+      'startAt': startAt.toJson(),
+      'endAt': endAt.toJson(),
     };
   }
 
@@ -91,12 +106,16 @@ class _AcademicTermImpl extends AcademicTerm {
     required String termName,
     required String status,
     required double maxCreditsPerTerm,
+    required DateTime startAt,
+    required DateTime endAt,
   }) : super._(
          id: id,
          academicYear: academicYear,
          termName: termName,
          status: status,
          maxCreditsPerTerm: maxCreditsPerTerm,
+         startAt: startAt,
+         endAt: endAt,
        );
 
   /// Returns a shallow copy of this [AcademicTerm]
@@ -109,6 +128,8 @@ class _AcademicTermImpl extends AcademicTerm {
     String? termName,
     String? status,
     double? maxCreditsPerTerm,
+    DateTime? startAt,
+    DateTime? endAt,
   }) {
     return AcademicTerm(
       id: id is int? ? id : this.id,
@@ -116,6 +137,8 @@ class _AcademicTermImpl extends AcademicTerm {
       termName: termName ?? this.termName,
       status: status ?? this.status,
       maxCreditsPerTerm: maxCreditsPerTerm ?? this.maxCreditsPerTerm,
+      startAt: startAt ?? this.startAt,
+      endAt: endAt ?? this.endAt,
     );
   }
 }

@@ -15,18 +15,19 @@ import 'package:serverpod/serverpod.dart' as _i1;
 import '../endpoints/academic_endpoint.dart' as _i2;
 import '../endpoints/account_endpoint.dart' as _i3;
 import '../endpoints/admin_account_endpoint.dart' as _i4;
-import '../endpoints/course_endpoint.dart' as _i5;
-import '../endpoints/email_idp_endpoint.dart' as _i6;
-import '../endpoints/google_idp_endpoint.dart' as _i7;
-import '../endpoints/jwt_refresh_endpoint.dart' as _i8;
-import '../endpoints/student_endpoint.dart' as _i9;
-import '../greetings/greeting_endpoint.dart' as _i10;
+import '../endpoints/chatbot_endpoint.dart' as _i5;
+import '../endpoints/course_endpoint.dart' as _i6;
+import '../endpoints/email_idp_endpoint.dart' as _i7;
+import '../endpoints/google_idp_endpoint.dart' as _i8;
+import '../endpoints/jwt_refresh_endpoint.dart' as _i9;
+import '../endpoints/student_endpoint.dart' as _i10;
+import '../greetings/greeting_endpoint.dart' as _i11;
 import 'package:smart_course_registration_chatbot_server/src/generated/course_dto.dart'
-    as _i11;
-import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i12;
-import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i13;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _i14;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -50,37 +51,43 @@ class Endpoints extends _i1.EndpointDispatch {
           'adminAccount',
           null,
         ),
-      'course': _i5.CourseEndpoint()
+      'chatbot': _i5.ChatbotEndpoint()
+        ..initialize(
+          server,
+          'chatbot',
+          null,
+        ),
+      'course': _i6.CourseEndpoint()
         ..initialize(
           server,
           'course',
           null,
         ),
-      'emailIdp': _i6.EmailIdpEndpoint()
+      'emailIdp': _i7.EmailIdpEndpoint()
         ..initialize(
           server,
           'emailIdp',
           null,
         ),
-      'googleIdp': _i7.GoogleIdpEndpoint()
+      'googleIdp': _i8.GoogleIdpEndpoint()
         ..initialize(
           server,
           'googleIdp',
           null,
         ),
-      'jwtRefresh': _i8.JwtRefreshEndpoint()
+      'jwtRefresh': _i9.JwtRefreshEndpoint()
         ..initialize(
           server,
           'jwtRefresh',
           null,
         ),
-      'student': _i9.StudentEndpoint()
+      'student': _i10.StudentEndpoint()
         ..initialize(
           server,
           'student',
           null,
         ),
-      'greeting': _i10.GreetingEndpoint()
+      'greeting': _i11.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
@@ -170,6 +177,31 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['chatbot'] = _i1.EndpointConnector(
+      name: 'chatbot',
+      endpoint: endpoints['chatbot']!,
+      methodConnectors: {
+        'sendMessage': _i1.MethodConnector(
+          name: 'sendMessage',
+          params: {
+            'message': _i1.ParameterDescription(
+              name: 'message',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['chatbot'] as _i5.ChatbotEndpoint).sendMessage(
+                    session,
+                    params['message'],
+                  ),
+        ),
+      },
+    );
     connectors['course'] = _i1.EndpointConnector(
       name: 'course',
       endpoint: endpoints['course']!,
@@ -193,7 +225,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['course'] as _i5.CourseEndpoint).getCoursesPage(
+                  (endpoints['course'] as _i6.CourseEndpoint).getCoursesPage(
                     session,
                     params['page'],
                     params['pageSize'],
@@ -204,7 +236,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i11.CourseDto>(),
+              type: _i1.getType<_i12.CourseDto>(),
               nullable: false,
             ),
           },
@@ -213,7 +245,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['course'] as _i5.CourseEndpoint).createCourse(
+                  (endpoints['course'] as _i6.CourseEndpoint).createCourse(
                     session,
                     params['courseDto'],
                   ),
@@ -223,7 +255,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i11.CourseDto>(),
+              type: _i1.getType<_i12.CourseDto>(),
               nullable: false,
             ),
           },
@@ -232,7 +264,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['course'] as _i5.CourseEndpoint).updateCourse(
+                  (endpoints['course'] as _i6.CourseEndpoint).updateCourse(
                     session,
                     params['courseDto'],
                   ),
@@ -251,7 +283,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['course'] as _i5.CourseEndpoint).deleteCourse(
+                  (endpoints['course'] as _i6.CourseEndpoint).deleteCourse(
                     session,
                     params['courseId'],
                   ),
@@ -280,7 +312,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['course'] as _i5.CourseEndpoint).searchCourses(
+                  (endpoints['course'] as _i6.CourseEndpoint).searchCourses(
                     session,
                     params['query'],
                     params['page'],
@@ -301,7 +333,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['course'] as _i5.CourseEndpoint).getCourseById(
+                  (endpoints['course'] as _i6.CourseEndpoint).getCourseById(
                     session,
                     params['courseId'],
                   ),
@@ -330,7 +362,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint).login(
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint).login(
                 session,
                 email: params['email'],
                 password: params['password'],
@@ -349,7 +381,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
                   .startRegistration(
                     session,
                     email: params['email'],
@@ -373,7 +405,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
                   .verifyRegistrationCode(
                     session,
                     accountRequestId: params['accountRequestId'],
@@ -398,7 +430,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
                   .finishRegistration(
                     session,
                     registrationToken: params['registrationToken'],
@@ -418,7 +450,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
                   .startPasswordReset(
                     session,
                     email: params['email'],
@@ -442,7 +474,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
                   .verifyPasswordResetCode(
                     session,
                     passwordResetRequestId: params['passwordResetRequestId'],
@@ -467,7 +499,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
                   .finishPasswordReset(
                     session,
                     finishPasswordResetToken:
@@ -482,7 +514,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i6.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
                   .hasAccount(session),
         ),
       },
@@ -510,7 +542,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['googleIdp'] as _i7.GoogleIdpEndpoint).login(
+                  (endpoints['googleIdp'] as _i8.GoogleIdpEndpoint).login(
                     session,
                     idToken: params['idToken'],
                     accessToken: params['accessToken'],
@@ -523,7 +555,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['googleIdp'] as _i7.GoogleIdpEndpoint)
+              ) async => (endpoints['googleIdp'] as _i8.GoogleIdpEndpoint)
                   .hasAccount(session),
         ),
       },
@@ -545,7 +577,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['jwtRefresh'] as _i8.JwtRefreshEndpoint)
+              ) async => (endpoints['jwtRefresh'] as _i9.JwtRefreshEndpoint)
                   .refreshAccessToken(
                     session,
                     refreshToken: params['refreshToken'],
@@ -564,7 +596,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['student'] as _i9.StudentEndpoint)
+              ) async => (endpoints['student'] as _i10.StudentEndpoint)
                   .getMyCurriculum(session),
         ),
       },
@@ -586,16 +618,16 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i10.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i11.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i12.Endpoints()
+    modules['serverpod_auth_idp'] = _i13.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i13.Endpoints()
+    modules['serverpod_auth_core'] = _i14.Endpoints()
       ..initializeEndpoints(server);
   }
 }

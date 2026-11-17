@@ -12,6 +12,7 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:serverpod/serverpod.dart' as _i1;
+import 'registration_origin.dart' as _i2;
 
 abstract class Enrollment
     implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
@@ -21,8 +22,10 @@ abstract class Enrollment
     required this.sectionId,
     required this.enrollmentType,
     required this.status,
+    required this.registrationOrigin,
     required this.registeredAt,
     this.cancelledAt,
+    this.submittedAt,
     this.score,
     required this.gradeStatus,
     required this.resultStatus,
@@ -36,8 +39,10 @@ abstract class Enrollment
     required int sectionId,
     required String enrollmentType,
     required String status,
+    required _i2.RegistrationOrigin registrationOrigin,
     required DateTime registeredAt,
     DateTime? cancelledAt,
+    DateTime? submittedAt,
     double? score,
     required String gradeStatus,
     required String resultStatus,
@@ -52,6 +57,9 @@ abstract class Enrollment
       sectionId: jsonSerialization['sectionId'] as int,
       enrollmentType: jsonSerialization['enrollmentType'] as String,
       status: jsonSerialization['status'] as String,
+      registrationOrigin: _i2.RegistrationOrigin.fromJson(
+        (jsonSerialization['registrationOrigin'] as String),
+      ),
       registeredAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['registeredAt'],
       ),
@@ -59,6 +67,11 @@ abstract class Enrollment
           ? null
           : _i1.DateTimeJsonExtension.fromJson(
               jsonSerialization['cancelledAt'],
+            ),
+      submittedAt: jsonSerialization['submittedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['submittedAt'],
             ),
       score: (jsonSerialization['score'] as num?)?.toDouble(),
       gradeStatus: jsonSerialization['gradeStatus'] as String,
@@ -93,11 +106,17 @@ abstract class Enrollment
   /// ENROLLED, CANCELLED, SECTION_CANCELLED, COMPLETED
   String status;
 
+  /// Thời điểm đăng ký
+  _i2.RegistrationOrigin registrationOrigin;
+
   /// Thoi gian dang ky
   DateTime registeredAt;
 
   /// Thoi gian huy dang ky
   DateTime? cancelledAt;
+
+  /// Thời gian giảng viên hoàn tất gửi điểm số
+  DateTime? submittedAt;
 
   /// Diem so
   double? score;
@@ -128,8 +147,10 @@ abstract class Enrollment
     int? sectionId,
     String? enrollmentType,
     String? status,
+    _i2.RegistrationOrigin? registrationOrigin,
     DateTime? registeredAt,
     DateTime? cancelledAt,
+    DateTime? submittedAt,
     double? score,
     String? gradeStatus,
     String? resultStatus,
@@ -145,8 +166,10 @@ abstract class Enrollment
       'sectionId': sectionId,
       'enrollmentType': enrollmentType,
       'status': status,
+      'registrationOrigin': registrationOrigin.toJson(),
       'registeredAt': registeredAt.toJson(),
       if (cancelledAt != null) 'cancelledAt': cancelledAt?.toJson(),
+      if (submittedAt != null) 'submittedAt': submittedAt?.toJson(),
       if (score != null) 'score': score,
       'gradeStatus': gradeStatus,
       'resultStatus': resultStatus,
@@ -200,8 +223,10 @@ class _EnrollmentImpl extends Enrollment {
     required int sectionId,
     required String enrollmentType,
     required String status,
+    required _i2.RegistrationOrigin registrationOrigin,
     required DateTime registeredAt,
     DateTime? cancelledAt,
+    DateTime? submittedAt,
     double? score,
     required String gradeStatus,
     required String resultStatus,
@@ -213,8 +238,10 @@ class _EnrollmentImpl extends Enrollment {
          sectionId: sectionId,
          enrollmentType: enrollmentType,
          status: status,
+         registrationOrigin: registrationOrigin,
          registeredAt: registeredAt,
          cancelledAt: cancelledAt,
+         submittedAt: submittedAt,
          score: score,
          gradeStatus: gradeStatus,
          resultStatus: resultStatus,
@@ -232,8 +259,10 @@ class _EnrollmentImpl extends Enrollment {
     int? sectionId,
     String? enrollmentType,
     String? status,
+    _i2.RegistrationOrigin? registrationOrigin,
     DateTime? registeredAt,
     Object? cancelledAt = _Undefined,
+    Object? submittedAt = _Undefined,
     Object? score = _Undefined,
     String? gradeStatus,
     String? resultStatus,
@@ -246,8 +275,10 @@ class _EnrollmentImpl extends Enrollment {
       sectionId: sectionId ?? this.sectionId,
       enrollmentType: enrollmentType ?? this.enrollmentType,
       status: status ?? this.status,
+      registrationOrigin: registrationOrigin ?? this.registrationOrigin,
       registeredAt: registeredAt ?? this.registeredAt,
       cancelledAt: cancelledAt is DateTime? ? cancelledAt : this.cancelledAt,
+      submittedAt: submittedAt is DateTime? ? submittedAt : this.submittedAt,
       score: score is double? ? score : this.score,
       gradeStatus: gradeStatus ?? this.gradeStatus,
       resultStatus: resultStatus ?? this.resultStatus,
@@ -283,6 +314,12 @@ class EnrollmentUpdateTable extends _i1.UpdateTable<EnrollmentTable> {
     value,
   );
 
+  _i1.ColumnValue<_i2.RegistrationOrigin, _i2.RegistrationOrigin>
+  registrationOrigin(_i2.RegistrationOrigin value) => _i1.ColumnValue(
+    table.registrationOrigin,
+    value,
+  );
+
   _i1.ColumnValue<DateTime, DateTime> registeredAt(DateTime value) =>
       _i1.ColumnValue(
         table.registeredAt,
@@ -292,6 +329,12 @@ class EnrollmentUpdateTable extends _i1.UpdateTable<EnrollmentTable> {
   _i1.ColumnValue<DateTime, DateTime> cancelledAt(DateTime? value) =>
       _i1.ColumnValue(
         table.cancelledAt,
+        value,
+      );
+
+  _i1.ColumnValue<DateTime, DateTime> submittedAt(DateTime? value) =>
+      _i1.ColumnValue(
+        table.submittedAt,
         value,
       );
 
@@ -341,12 +384,21 @@ class EnrollmentTable extends _i1.Table<int?> {
       'status',
       this,
     );
+    registrationOrigin = _i1.ColumnEnum(
+      'registrationOrigin',
+      this,
+      _i1.EnumSerialization.byName,
+    );
     registeredAt = _i1.ColumnDateTime(
       'registeredAt',
       this,
     );
     cancelledAt = _i1.ColumnDateTime(
       'cancelledAt',
+      this,
+    );
+    submittedAt = _i1.ColumnDateTime(
+      'submittedAt',
       this,
     );
     score = _i1.ColumnDouble(
@@ -387,11 +439,17 @@ class EnrollmentTable extends _i1.Table<int?> {
   /// ENROLLED, CANCELLED, SECTION_CANCELLED, COMPLETED
   late final _i1.ColumnString status;
 
+  /// Thời điểm đăng ký
+  late final _i1.ColumnEnum<_i2.RegistrationOrigin> registrationOrigin;
+
   /// Thoi gian dang ky
   late final _i1.ColumnDateTime registeredAt;
 
   /// Thoi gian huy dang ky
   late final _i1.ColumnDateTime cancelledAt;
+
+  /// Thời gian giảng viên hoàn tất gửi điểm số
+  late final _i1.ColumnDateTime submittedAt;
 
   /// Diem so
   late final _i1.ColumnDouble score;
@@ -417,8 +475,10 @@ class EnrollmentTable extends _i1.Table<int?> {
     sectionId,
     enrollmentType,
     status,
+    registrationOrigin,
     registeredAt,
     cancelledAt,
+    submittedAt,
     score,
     gradeStatus,
     resultStatus,

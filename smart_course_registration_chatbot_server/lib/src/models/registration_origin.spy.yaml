@@ -1,0 +1,6 @@
+enum: RegistrationOrigin
+serialized: byName
+values:
+  - initial
+  - adjust_1
+  - adjust_2

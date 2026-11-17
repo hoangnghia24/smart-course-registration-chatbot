@@ -77,7 +77,9 @@ class _SmartCourseAppState extends State<SmartCourseApp> {
     }
     return _VerifiedRoleDashboard(
       user: user,
-      onSignOut: () { auth.signOut(); },
+      onSignOut: () {
+        auth.signOut();
+      },
     );
   }
 

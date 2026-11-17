@@ -21,8 +21,10 @@ class RecommendationCard extends StatelessWidget {
   static const _red = Color(0xFFD63B4C);
 
   bool get _retakeFromBackend {
-    final codes = {...course.reasonCodes, if (course.reasonCode != null) course.reasonCode!}
-        .map((e) => e.toUpperCase());
+    final codes = {
+      ...course.reasonCodes,
+      if (course.reasonCode != null) course.reasonCode!,
+    }.map((e) => e.toUpperCase());
     return codes.contains('RETAKE_RECOMMENDED') ||
         codes.contains('RETAKE_REQUIRED');
   }
@@ -31,29 +33,29 @@ class RecommendationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isBlocked = isOfficial && course.eligible == false;
     final isRetake = isOfficial && _retakeFromBackend;
-    final isPriority = isOfficial && course.eligible == true &&
-        course.priorityRank != null;
-    final isRed = isBlocked || isRetake ||
+    final isPriority =
+        isOfficial && course.eligible == true && course.priorityRank != null;
+    final isRed =
+        isBlocked ||
+        isRetake ||
         (!isOfficial && course.progressStatus == 'FAILED');
     final accent = isRed ? _red : const Color(0xFF2A6FC7);
     final badge = isBlocked
         ? 'Chưa đủ điều kiện'
         : isRetake
-            ? 'Học lại'
-            : isPriority
-                ? 'Nên xem'
-                : isOfficial
-                    ? (course.eligible == true ? 'Đủ điều kiện' : 'Chưa xác định')
-                    : (course.progressStatus == 'FAILED'
-                        ? 'Chưa đạt' : 'Trong CTĐT');
-    final bg = isRed ? const Color(0xFFFFE9EB) :
-        const Color(0xFFE7F0FF);
+        ? 'Học lại'
+        : isPriority
+        ? 'Nên xem'
+        : isOfficial
+        ? (course.eligible == true ? 'Đủ điều kiện' : 'Chưa xác định')
+        : (course.progressStatus == 'FAILED' ? 'Chưa đạt' : 'Trong CTĐT');
+    final bg = isRed ? const Color(0xFFFFE9EB) : const Color(0xFFE7F0FF);
     // Nội dung nút theo Frame-9. Mở chi tiết cục bộ an toàn khi chưa có F05;
     // KHÔNG tuyên bố danh sách lớp là dữ liệu thật của backend.
     final actionText = isOfficial
         ? isRetake
-            ? 'Xem các lớp học lại đang mở'
-            : 'Xem thông tin và lớp học phần'
+              ? 'Xem các lớp học lại đang mở'
+              : 'Xem thông tin và lớp học phần'
         : 'Xem thông tin môn học';
 
     final subtitleParts = <String>[];
@@ -67,8 +69,11 @@ class RecommendationCard extends StatelessWidget {
     } else if (!isOfficial && course.progressStatus != null) {
       subtitleParts.add(_progressLabel(course.progressStatus));
     } else {
-      subtitleParts.add(isOfficial ? 'Môn trong lộ trình học tập' :
-          'Môn thuộc chương trình đào tạo');
+      subtitleParts.add(
+        isOfficial
+            ? 'Môn trong lộ trình học tập'
+            : 'Môn thuộc chương trình đào tạo',
+      );
     }
     if (course.credits != null) subtitleParts.add('${course.credits} tín chỉ');
 
@@ -112,7 +117,9 @@ class RecommendationCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: bg,
                             borderRadius: BorderRadius.circular(10),
@@ -145,10 +152,14 @@ class RecommendationCard extends StatelessWidget {
                           minimumSize: const Size(0, 32),
                           alignment: Alignment.centerLeft,
                         ),
-                        child: Text(actionText,
-                            key: ValueKey('f24-action-${course.code}'),
-                            style: const TextStyle(color: _navy,
-                                fontWeight: FontWeight.w700)),
+                        child: Text(
+                          actionText,
+                          key: ValueKey('f24-action-${course.code}'),
+                          style: const TextStyle(
+                            color: _navy,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ],
                   ],
