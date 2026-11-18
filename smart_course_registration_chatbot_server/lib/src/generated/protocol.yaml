@@ -15,6 +15,19 @@ course:
   - deleteCourse:
   - searchCourses:
   - getCourseById:
+curriculumAdmin:
+  - listCurriculums:
+  - createCurriculum:
+  - createDraftVersion:
+  - getVersion:
+  - saveDraftVersion:
+  - publishVersion:
+  - archiveVersion:
+  - deleteDraftVersion:
+  - previewVersionForAdmission:
+  - getStudentAssignment:
+  - changeStudentVersion:
+  - setStudentAdmissionYear:
 emailIdp:
   - login:
   - startRegistration:

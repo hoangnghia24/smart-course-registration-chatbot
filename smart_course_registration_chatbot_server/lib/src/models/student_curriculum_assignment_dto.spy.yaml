@@ -1,0 +1,14 @@
+### F07 - Phien ban CTDT dang gan cho sinh vien
+class: StudentCurriculumAssignmentDto
+fields:
+  studentId: int
+  studentCode: String
+  admissionYear: int?
+  curriculumVersionId: int
+  curriculumCode: String
+  majorCode: String
+  versionCode: String
+  versionStatus: String
+  ### Phien ban ma quy tac nam hieu luc se chon cho sinh vien
+  ### (cung CTDT, PUBLISHED, effectiveYear lon nhat <= nam nhap hoc); null neu khong co
+  suggestedVersionId: int?

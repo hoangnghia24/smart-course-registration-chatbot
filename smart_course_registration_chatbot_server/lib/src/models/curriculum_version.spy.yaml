@@ -1,3 +1,8 @@
+### F07 - Phien ban CTDT
+### Vong doi: DRAFT -> PUBLISHED -> ARCHIVED.
+### Chi DRAFT duoc sua noi dung; PUBLISHED/ARCHIVED bi khoa.
+### Hoc che tin chi: sinh vien nhap hoc nam N dung phien ban PUBLISHED
+### co effectiveYear lon nhat <= N cua CTDT ma sinh vien theo hoc.
 class: CurriculumVersion
 table: app_curriculum_version
 serverOnly: true
@@ -6,9 +11,22 @@ fields:
   curriculumId: int, relation(parent=app_curriculum)
   versionCode: String
   effectiveYear: int
+
+  ### DRAFT, PUBLISHED, ARCHIVED
   status: String
+
+  ### Tong tin chi toi thieu de tot nghiep; bat buoc khi cong bo
+  totalCreditsRequired: int?
+
+  ### Tang moi lan luu ban nhap; dung chong ghi de dong thoi
+  revision: int, default=1
+
+  ### Thoi diem cong bo chinh thuc
+  publishedAt: DateTime?
 
 indexes:
   app_curriculum_version_unique:
     fields: curriculumId, versionCode
     unique: true
+  app_curriculum_version_lookup_idx:
+    fields: curriculumId, status, effectiveYear

@@ -1,0 +1,13 @@
+### F07 - Hoc phan trong phien ban.
+### Khi gui len: chi can courseId, semester, isRequired, groupCode, itemOrder.
+### Khi tra ve: server dien courseCode, courseName, credits (snapshot).
+class: AdminCurriculumItemDto
+fields:
+  courseId: int
+  courseCode: String?
+  courseName: String?
+  credits: int?
+  semester: int
+  isRequired: bool
+  groupCode: String?
+  itemOrder: int?

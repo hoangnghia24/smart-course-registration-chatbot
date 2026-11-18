@@ -97,7 +97,8 @@ class StudentEndpoint extends Endpoint {
           course: CourseItemDto(
             code: course.code,
             name: course.name,
-            credits: course.credits,
+            // F07: uu tien tin chi da chup trong phien ban CTDT
+            credits: item.credits ?? course.credits,
             description: course.description,
           ),
 

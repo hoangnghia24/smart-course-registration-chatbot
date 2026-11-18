@@ -39,7 +39,7 @@ class DevSeedSampleData {
               code: 'DEV-CNTT',
               name: 'Chương trình thử nghiệm - KHÔNG CHÍNH THỨC',
               majorCode: 'DEV',
-              status: 'DEMO',
+              status: 'ACTIVE',
             ),
             transaction: transaction,
           );
@@ -59,7 +59,13 @@ class DevSeedSampleData {
               curriculumId: curriculum.id!,
               versionCode: 'DEV-2026',
               effectiveYear: 2026,
-              status: 'DEMO',
+              // F07: phien ban mau da cong bo de co the gan sinh vien.
+              status: 'PUBLISHED',
+              // Tong tin chi = tong tin chi cac hoc phan trong CTDT mau.
+              totalCreditsRequired: _sampleCourses
+                  .where((s) => s.semester != null)
+                  .fold<int>(0, (sum, s) => sum + s.credits),
+              publishedAt: DateTime.now().toUtc(),
             ),
             transaction: transaction,
           );
@@ -86,6 +92,7 @@ class DevSeedSampleData {
               courseId: course.id!,
               semester: spec.semester!,
               isRequired: spec.isRequired,
+              credits: spec.credits,
             ),
             transaction: transaction,
           );
