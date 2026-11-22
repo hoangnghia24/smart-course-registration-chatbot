@@ -3,16 +3,15 @@ import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
+import 'k26_curriculum_data.dart';
 
-/// Creates demo courses and curriculum items once in an EMPTY course catalog.
-///
-/// Guardrails:
-/// - Called only in Serverpod's development run mode (see server.dart).
-/// - Does not touch existing course catalogs, even partially populated ones.
-/// - Inserts the curriculum, version, courses and mapping rows atomically.
-/// - Does not create AuthUser/UserAccount records; DevSeedAccounts handles those.
-///
-/// Automatically called on each development server startup.
+/// Development data seeder.
+/// - Preserves the original DEV-CNTT demo seed, only when app_course is empty.
+/// - Optionally adds three K26 2026 draft curricula with a separate transaction.
+/// - Reuses existing Course codes; does NOT overwrite existing records.
+/// - Does NOT create AuthUser/UserAccount or reassign students.
+/// IMPORTANT: run only in development mode (guarded by caller in server.dart).
+/// K26 requires SEED_K26_CURRICULA=true to opt in.
 class DevSeedSampleData {
   static Future<void> run(Session session) async {
     final insertedCourses = await session.db.transaction((transaction) async {
@@ -103,15 +102,266 @@ class DevSeedSampleData {
 
     if (insertedCourses == 0) {
       stdout.writeln(
-        '[DEV DATA SEED] Skipped: app_course already contains data. '
+        '[DEV DATA SEED] Demo catalog skipped (app_course is not empty). '
         'Existing rows remain unchanged.',
       );
     } else {
       stdout.writeln(
-        '[DEV DATA SEED] Inserted $insertedCourses courses, '
-        '37 curriculum items, using DEV-CNTT / DEV-2026.',
+        '[DEV DATA SEED] Inserted $insertedCourses demo courses, '
+        'using DEV-CNTT / DEV-2026.',
       );
     }
+
+    // Important: K26 is independent of the OLD demo catalog guard above.
+    // Therefore it can be added to a database that already has courses.
+    // Always opt in explicitly because the current PDF-derived set is INCOMPLETE.
+    final importK26 =
+        Platform.environment['SEED_K26_CURRICULA']?.trim().toLowerCase() ==
+        'true';
+    if (importK26) {
+      await _seedK26DraftCurriculums(session);
+    } else {
+      stdout.writeln(
+        '[K26 SEED] Disabled. Set SEED_K26_CURRICULA=true in DEV '
+        'to import draft 2026 curricula.',
+      );
+    }
+  }
+
+  /// Seed only the reviewed subset of the three PDF-derived 2026 curricula.
+  /// Never updates existing Course/Curriculum/Version/Student rows.
+  /// - One Course row per code, reused by multiple CurriculumItems.
+  /// - New CurriculumVersions are DRAFT because electives/credits/aliases need review.
+  /// - A pre-existing version is not touched (even if empty).
+  /// - A single transaction prevents partially imported K26 data on failure.
+  static Future<void> _seedK26DraftCurriculums(Session session) async {
+    final summary = await session.db.transaction((transaction) async {
+      final requestedCodes = K26CurriculumData.courses
+          .map((spec) => spec.code)
+          .toSet();
+      final currentCourses = await Course.db.find(
+        session,
+        where: (t) => t.code.inSet(requestedCodes),
+        transaction: transaction,
+      );
+      final coursesByCode = <String, Course>{
+        for (final course in currentCourses) course.code: course,
+      };
+
+      final newCourses = <Course>[];
+      var differentExistingName = 0;
+      var existingInactive = 0;
+
+      for (final spec in K26CurriculumData.courses) {
+        final existing = coursesByCode[spec.code];
+        if (existing != null) {
+          if (existing.credits != spec.credits) {
+            throw AppException(
+              code: 'K26_COURSE_CREDITS_CONFLICT',
+              message: 'Mon ${spec.code}: ${existing.credits} TC in DB, '
+                  '${spec.credits} TC in approved source. '
+                  'Review manually; seed rolled back.',
+            );
+          }
+          if (existing.name.trim().toLowerCase() !=
+              spec.name.trim().toLowerCase()) {
+            differentExistingName++;
+          }
+          if (!existing.isActive) existingInactive++;
+          continue;
+        }
+
+        newCourses.add(
+          Course(
+            code: spec.code,
+            name: spec.name,
+            credits: spec.credits,
+            description: null,
+            isActive: true,
+          ),
+        );
+      }
+
+      if (newCourses.isNotEmpty) {
+        final inserted = await Course.db.insert(
+          session,
+          newCourses,
+          transaction: transaction,
+        );
+        for (final course in inserted) {
+          coursesByCode[course.code] = course;
+        }
+      }
+
+      var createdPrograms = 0;
+      var createdVersions = 0;
+      var createdItems = 0;
+      var skippedVersions = 0;
+      var createdGroups = 0;
+
+      for (final program in K26CurriculumData.programs) {
+        var curriculum = await Curriculum.db.findFirstRow(
+          session,
+          where: (t) => t.code.equals(program.code),
+          transaction: transaction,
+        );
+        if (curriculum != null) {
+          if (curriculum.majorCode != program.majorCode) {
+            throw AppException(
+              code: 'K26_CURRICULUM_CODE_CONFLICT',
+              message: 'CTDT ${program.code} has another majorCode. '
+                  'Do not overwrite existing data.',
+            );
+          }
+        } else {
+          curriculum = await Curriculum.db.insertRow(
+            session,
+            Curriculum(
+              code: program.code,
+              name: program.name,
+              majorCode: program.majorCode,
+              status: 'ACTIVE',
+            ),
+            transaction: transaction,
+          );
+          createdPrograms++;
+        }
+
+        // findFirstRow returns Curriculum?; after find/create it must exist.
+        final curriculumId = curriculum!.id!;
+
+        final oldVersion = await CurriculumVersion.db.findFirstRow(
+          session,
+          where: (t) =>
+              t.curriculumId.equals(curriculumId) &
+              t.versionCode.equals(K26CurriculumData.versionCode),
+          transaction: transaction,
+        );
+        if (oldVersion != null) {
+          // Don't mutate an existing draft/published/archived version.
+          skippedVersions++;
+          continue;
+        }
+
+        final version = await CurriculumVersion.db.insertRow(
+          session,
+          CurriculumVersion(
+            curriculumId: curriculumId,
+            versionCode: K26CurriculumData.versionCode,
+            effectiveYear: K26CurriculumData.effectiveYear,
+            status: K26CurriculumData.seedVersionStatus,
+            totalCreditsRequired: K26CurriculumData.publishedDegreeCredits,
+            revision: 1,
+          ),
+          transaction: transaction,
+        );
+        createdVersions++;
+
+        // Optional specialization tracks are grouping hints, NOT mandatory.
+        // Other rows have no group because knowledge blocks have not been
+        // independently verified against the full PDF curriculum tables.
+        final groupNames = <String, String>{
+          'CN-PM': 'Chuyên ngành Công nghệ phần mềm (lựa chọn)',
+          'CN-HTTT': 'Chuyên ngành Hệ thống thông tin (lựa chọn)',
+          'CN-AI': 'Chuyên ngành Trí tuệ nhân tạo (lựa chọn)',
+        };
+        final programItems = K26CurriculumData.items
+            .where((spec) => spec.programCode == program.code)
+            .toList();
+        final usedGroupCodes = programItems
+            .where((spec) => spec.groupCode != null)
+            .map((spec) => spec.groupCode!)
+            .toSet();
+        final groupIds = <String, int>{};
+        var groupOrder = 10;
+        for (final groupCode in (usedGroupCodes.toList()..sort())) {
+          final group = await CurriculumGroup.db.insertRow(
+            session,
+            CurriculumGroup(
+              curriculumVersionId: version.id!,
+              groupCode: groupCode,
+              groupName: groupNames[groupCode] ?? groupCode,
+              groupOrder: groupOrder,
+            ),
+            transaction: transaction,
+          );
+          groupIds[groupCode] = group.id!;
+          groupOrder += 10;
+          createdGroups++;
+        }
+
+        final toInsert = <CurriculumItem>[];
+        for (final spec in programItems) {
+          final course = coursesByCode[spec.courseCode];
+          if (course == null || course.id == null) {
+            throw AppException(
+              code: 'K26_COURSE_MISSING',
+              message: 'Missing Course ${spec.courseCode} for ${program.code}.',
+            );
+          }
+          if (course.credits != spec.credits) {
+            throw AppException(
+              code: 'K26_ITEM_CREDITS_CONFLICT',
+              message: 'Credits mismatch for ${spec.courseCode}.',
+            );
+          }
+          toInsert.add(
+            CurriculumItem(
+              curriculumVersionId: version.id!,
+              courseId: course.id!,
+              semester: spec.semester,
+              isRequired: spec.isRequired,
+              groupId: spec.groupCode == null
+                  ? null
+                  : groupIds[spec.groupCode],
+              itemOrder: spec.itemOrder,
+              credits: spec.credits,
+            ),
+          );
+        }
+        if (toInsert.isNotEmpty) {
+          await CurriculumItem.db.insert(
+            session,
+            toInsert,
+            transaction: transaction,
+          );
+          createdItems += toInsert.length;
+        }
+      }
+
+      return <String, int>{
+        'createdCourses': newCourses.length,
+        'nameDifferences': differentExistingName,
+        'inactiveExisting': existingInactive,
+        'createdPrograms': createdPrograms,
+        'createdVersions': createdVersions,
+        'createdGroups': createdGroups,
+        'createdItems': createdItems,
+        'skippedVersions': skippedVersions,
+      };
+    });
+
+    stdout.writeln(
+      '[K26 SEED] Draft import complete: '
+      'new courses=${summary['createdCourses']}, '
+      'new programs=${summary['createdPrograms']}, '
+      'new versions=${summary['createdVersions']}, '
+      'new groups=${summary['createdGroups']}, '
+      'new items=${summary['createdItems']}, '
+      'existing versions untouched=${summary['skippedVersions']}.',
+    );
+    if (summary['nameDifferences']! > 0 || summary['inactiveExisting']! > 0) {
+      stdout.writeln(
+        '[K26 SEED] Review existing catalog: '
+        'different names=${summary['nameDifferences']}, '
+        'inactive courses=${summary['inactiveExisting']}. '
+        'No pre-existing records were changed.',
+      );
+    }
+    stdout.writeln(
+      '[K26 SEED] These versions are DRAFT and incomplete: '
+      'not suitable for Rule Engine graduation checks or automatic assignment.',
+    );
   }
 }
 

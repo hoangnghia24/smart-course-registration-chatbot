@@ -1,8 +1,0 @@
-### F07 - Anh xa (nganh, khoa) -> phien ban CTDT
-class: CurriculumCohortDto
-fields:
-  majorCode: String
-  admissionYear: int
-  curriculumVersionId: int
-  curriculumCode: String
-  versionCode: String

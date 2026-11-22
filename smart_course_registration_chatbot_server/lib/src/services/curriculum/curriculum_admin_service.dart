@@ -2,6 +2,7 @@ import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
 import 'curriculum_rules.dart';
+import 'curriculum_read_service.dart';
 
 /// F07 - Quan ly CTDT, phien ban va lien ket Student <-> phien ban.
 ///
@@ -214,100 +215,43 @@ class CurriculumAdminService {
     return getVersionDetail(session, newId);
   }
 
+  /// Chi tiet CTDT dung chung kho truy van voi Student.
+  /// Giu nguyen DTO cho cac man hinh Admin da su dung.
   static Future<AdminCurriculumVersionDetailDto> getVersionDetail(
     Session session,
     int versionId, {
     Transaction? transaction,
   }) async {
     requirePositiveId(versionId, code: 'INVALID_VERSION_ID');
-    final version = await CurriculumVersion.db.findById(
+
+    final snapshot = await CurriculumReadService.getByVersion(
       session,
       versionId,
       transaction: transaction,
     );
-    if (version == null) throw _versionNotFound();
+    if (snapshot == null) throw _versionNotFound();
 
-    final curriculum = await Curriculum.db.findById(
-      session,
-      version.curriculumId,
-      transaction: transaction,
-    );
-    if (curriculum == null) throw _curriculumNotFound();
-
-    final groups = await CurriculumGroup.db.find(
-      session,
-      where: (t) => t.curriculumVersionId.equals(versionId),
-      orderByList: (t) => [
-        Order(column: t.groupOrder),
-        Order(column: t.groupCode),
-      ],
-      transaction: transaction,
-    );
-    final groupCodeById = {for (final g in groups) g.id!: g.groupCode};
-
-    final items = await CurriculumItem.db.find(
-      session,
-      where: (t) => t.curriculumVersionId.equals(versionId),
-      transaction: transaction,
-    );
-    final courseIds = items.map((i) => i.courseId).toSet();
-    final courses = courseIds.isEmpty
-        ? <Course>[]
-        : await Course.db.find(
-            session,
-            where: (t) => t.id.inSet(courseIds),
-            transaction: transaction,
-          );
-    final courseById = {for (final c in courses) c.id!: c};
-
-    final itemDtos = <AdminCurriculumItemDto>[];
+    final itemDtos = snapshot.toAdminItems();
     var totalCredits = 0;
     var requiredCredits = 0;
-    for (final item in items) {
-      final course = courseById[item.courseId];
-      final credits = item.credits ?? course?.credits;
-      totalCredits += credits ?? 0;
-      if (item.isRequired) requiredCredits += credits ?? 0;
-      itemDtos.add(
-        AdminCurriculumItemDto(
-          courseId: item.courseId,
-          courseCode: course?.code,
-          courseName: course?.name,
-          credits: credits,
-          semester: item.semester,
-          isRequired: item.isRequired,
-          groupCode: item.groupId == null ? null : groupCodeById[item.groupId],
-          itemOrder: item.itemOrder,
-        ),
-      );
+    for (final item in itemDtos) {
+      final credits = item.credits ?? 0;
+      totalCredits += credits;
+      if (item.isRequired) requiredCredits += credits;
     }
-    itemDtos.sort((a, b) {
-      final s = a.semester.compareTo(b.semester);
-      if (s != 0) return s;
-      final o = (a.itemOrder ?? 999999).compareTo(b.itemOrder ?? 999999);
-      if (o != 0) return o;
-      return (a.courseCode ?? '').compareTo(b.courseCode ?? '');
-    });
 
     final summaries = await _buildSummaries(
       session,
-      [version],
+      [snapshot.version],
       transaction: transaction,
     );
 
     return AdminCurriculumVersionDetailDto(
       summary: summaries[versionId]!,
-      curriculumCode: curriculum.code,
-      curriculumName: curriculum.name,
-      majorCode: curriculum.majorCode,
-      groups: [
-        for (final g in groups)
-          AdminCurriculumGroupDto(
-            groupCode: g.groupCode,
-            groupName: g.groupName,
-            groupOrder: g.groupOrder,
-          ),
-      ],
+      curriculumCode: snapshot.curriculum.code,
+      curriculumName: snapshot.curriculum.name,
+      majorCode: snapshot.curriculum.majorCode,
+      groups: snapshot.toAdminGroups(),
       items: itemDtos,
       totalItemCredits: totalCredits,
       requiredItemCredits: requiredCredits,

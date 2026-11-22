@@ -30,22 +30,27 @@ class OllamaEmbeddingService {
   }
 
   /// Nội dung tài liệu: không thêm query instruction.
-  Future<List<double>> embedDocument(String text) {
-    return _embed(text);
+  Future<List<double>> embedDocument(String text) async {
+    return (await _embedMany([text])).first;
+  }
+
+  /// Nhiều tài liệu trong một request (Ollama /api/embed nhận danh sách input).
+  Future<List<List<double>>> embedDocuments(List<String> texts) {
+    return _embedMany(texts);
   }
 
   /// Câu hỏi: dùng instruction riêng để tối ưu truy xuất.
-  Future<List<double>> embedQuery(String question) {
+  Future<List<double>> embedQuery(String question) async {
     final instructed =
         'Instruct: Given a university course registration question, '
         'retrieve the most relevant curriculum and academic policy passages.\n'
         'Query: ${question.trim()}';
 
-    return _embed(instructed);
+    return (await _embedMany([instructed])).first;
   }
 
-  Future<List<double>> _embed(String input) async {
-    if (input.trim().isEmpty) {
+  Future<List<List<double>>> _embedMany(List<String> inputs) async {
+    if (inputs.isEmpty || inputs.any((s) => s.trim().isEmpty)) {
       throw ArgumentError(
         'Embedding input must not be empty.',
       );
@@ -64,7 +69,7 @@ class OllamaEmbeddingService {
             },
             body: jsonEncode({
               'model': model,
-              'input': input,
+              'input': inputs.length == 1 ? inputs.first : inputs,
               'dimensions': dimensions,
               'truncate': false,
               'keep_alive': '10m',
@@ -98,24 +103,30 @@ class OllamaEmbeddingService {
     final embeddings = data['embeddings'];
 
     if (embeddings is! List ||
-        embeddings.isEmpty ||
-        embeddings.first is! List) {
+        embeddings.length != inputs.length ||
+        embeddings.any((e) => e is! List)) {
       throw const FormatException(
         'Invalid Ollama embedding response.',
       );
     }
 
-    final vector = (embeddings.first as List)
-        .map((value) => (value as num).toDouble())
-        .toList(growable: false);
+    return [
+      for (final e in embeddings)
+        _checked(
+          (e as List)
+              .map((value) => (value as num).toDouble())
+              .toList(growable: false),
+        ),
+    ];
+  }
 
+  List<double> _checked(List<double> vector) {
     if (vector.length != dimensions) {
       throw StateError(
         'VECTOR_DIMENSION_MISMATCH: '
         'expected $dimensions, got ${vector.length}',
       );
     }
-
     return vector;
   }
 
