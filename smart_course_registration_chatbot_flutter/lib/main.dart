@@ -5,6 +5,9 @@ import 'package:smart_course_registration_chatbot_client/smart_course_registrati
 
 import 'app/smart_course_app.dart';
 import 'features/auth/data/f01_auth_gateway.dart';
+import 'features/chat/chatbot_repository_scope.dart';
+import 'features/chat/data/chatbot_repository_impl.dart';
+import 'features/chat/data/fake_chatbot_data_source.dart';
 import 'features/course_lookup/course_lookup_repository_scope.dart';
 import 'features/course_lookup/data/serverpod_course_lookup_repository.dart';
 import 'features/curriculum_lookup/curriculum_lookup_repository_scope.dart';
@@ -43,8 +46,15 @@ Future<void> main() async {
           repository: ServerpodAcademicProgressRepository(client),
           child: CourseManagementRepositoryScope(
             repository: ServerpodCourseManagementRepository(client),
-            child: SmartCourseApp(
-              f01Gateway: ServerpodF01AuthGateway(client),
+            child: ChatbotRepositoryScope(
+              // FE-08 demo: nguồn in-memory, KHÔNG phải lịch sử Backend.
+              // Thay bằng Serverpod Data Source khi API chính thức sẵn sàng.
+              repository: ChatbotRepositoryImpl(
+                dataSource: FakeChatbotDataSource(),
+              ),
+              child: SmartCourseApp(
+                f01Gateway: ServerpodF01AuthGateway(client),
+              ),
             ),
           ),
         ),
