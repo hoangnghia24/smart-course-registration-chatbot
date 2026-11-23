@@ -1,0 +1,12 @@
+### F07 - Chi tiet phien ban CTDT
+class: AdminCurriculumVersionDetailDto
+fields:
+  summary: AdminCurriculumVersionSummaryDto
+  curriculumCode: String
+  curriculumName: String
+  majorCode: String
+  groups: List<AdminCurriculumGroupDto>
+  items: List<AdminCurriculumItemDto>
+  ### Tong tin chi tat ca hoc phan / hoc phan bat buoc
+  totalItemCredits: int
+  requiredItemCredits: int

@@ -1,0 +1,6 @@
+### F07 - Khoi kien thuc trong phien ban
+class: AdminCurriculumGroupDto
+fields:
+  groupCode: String
+  groupName: String
+  groupOrder: int

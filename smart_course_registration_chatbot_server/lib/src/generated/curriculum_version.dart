@@ -13,6 +13,11 @@
 
 import 'package:serverpod/serverpod.dart' as _i1;
 
+/// F07 - Phien ban CTDT
+/// Vong doi: DRAFT -> PUBLISHED -> ARCHIVED.
+/// Chi DRAFT duoc sua noi dung; PUBLISHED/ARCHIVED bi khoa.
+/// Hoc che tin chi: sinh vien nhap hoc nam N dung phien ban PUBLISHED
+/// co effectiveYear lon nhat <= N cua CTDT ma sinh vien theo hoc.
 abstract class CurriculumVersion
     implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   CurriculumVersion._({
@@ -21,7 +26,10 @@ abstract class CurriculumVersion
     required this.versionCode,
     required this.effectiveYear,
     required this.status,
-  });
+    this.totalCreditsRequired,
+    int? revision,
+    this.publishedAt,
+  }) : revision = revision ?? 1;
 
   factory CurriculumVersion({
     int? id,
@@ -29,6 +37,9 @@ abstract class CurriculumVersion
     required String versionCode,
     required int effectiveYear,
     required String status,
+    int? totalCreditsRequired,
+    int? revision,
+    DateTime? publishedAt,
   }) = _CurriculumVersionImpl;
 
   factory CurriculumVersion.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -38,6 +49,13 @@ abstract class CurriculumVersion
       versionCode: jsonSerialization['versionCode'] as String,
       effectiveYear: jsonSerialization['effectiveYear'] as int,
       status: jsonSerialization['status'] as String,
+      totalCreditsRequired: jsonSerialization['totalCreditsRequired'] as int?,
+      revision: jsonSerialization['revision'] as int?,
+      publishedAt: jsonSerialization['publishedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['publishedAt'],
+            ),
     );
   }
 
@@ -54,7 +72,17 @@ abstract class CurriculumVersion
 
   int effectiveYear;
 
+  /// DRAFT, PUBLISHED, ARCHIVED
   String status;
+
+  /// Tong tin chi toi thieu de tot nghiep; bat buoc khi cong bo
+  int? totalCreditsRequired;
+
+  /// Tang moi lan luu ban nhap; dung chong ghi de dong thoi
+  int revision;
+
+  /// Thoi diem cong bo chinh thuc
+  DateTime? publishedAt;
 
   @override
   _i1.Table<int?> get table => t;
@@ -68,6 +96,9 @@ abstract class CurriculumVersion
     String? versionCode,
     int? effectiveYear,
     String? status,
+    int? totalCreditsRequired,
+    int? revision,
+    DateTime? publishedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -78,6 +109,10 @@ abstract class CurriculumVersion
       'versionCode': versionCode,
       'effectiveYear': effectiveYear,
       'status': status,
+      if (totalCreditsRequired != null)
+        'totalCreditsRequired': totalCreditsRequired,
+      'revision': revision,
+      if (publishedAt != null) 'publishedAt': publishedAt?.toJson(),
     };
   }
 
@@ -125,12 +160,18 @@ class _CurriculumVersionImpl extends CurriculumVersion {
     required String versionCode,
     required int effectiveYear,
     required String status,
+    int? totalCreditsRequired,
+    int? revision,
+    DateTime? publishedAt,
   }) : super._(
          id: id,
          curriculumId: curriculumId,
          versionCode: versionCode,
          effectiveYear: effectiveYear,
          status: status,
+         totalCreditsRequired: totalCreditsRequired,
+         revision: revision,
+         publishedAt: publishedAt,
        );
 
   /// Returns a shallow copy of this [CurriculumVersion]
@@ -143,6 +184,9 @@ class _CurriculumVersionImpl extends CurriculumVersion {
     String? versionCode,
     int? effectiveYear,
     String? status,
+    Object? totalCreditsRequired = _Undefined,
+    int? revision,
+    Object? publishedAt = _Undefined,
   }) {
     return CurriculumVersion(
       id: id is int? ? id : this.id,
@@ -150,6 +194,11 @@ class _CurriculumVersionImpl extends CurriculumVersion {
       versionCode: versionCode ?? this.versionCode,
       effectiveYear: effectiveYear ?? this.effectiveYear,
       status: status ?? this.status,
+      totalCreditsRequired: totalCreditsRequired is int?
+          ? totalCreditsRequired
+          : this.totalCreditsRequired,
+      revision: revision ?? this.revision,
+      publishedAt: publishedAt is DateTime? ? publishedAt : this.publishedAt,
     );
   }
 }
@@ -177,6 +226,22 @@ class CurriculumVersionUpdateTable
     table.status,
     value,
   );
+
+  _i1.ColumnValue<int, int> totalCreditsRequired(int? value) => _i1.ColumnValue(
+    table.totalCreditsRequired,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> revision(int value) => _i1.ColumnValue(
+    table.revision,
+    value,
+  );
+
+  _i1.ColumnValue<DateTime, DateTime> publishedAt(DateTime? value) =>
+      _i1.ColumnValue(
+        table.publishedAt,
+        value,
+      );
 }
 
 class CurriculumVersionTable extends _i1.Table<int?> {
@@ -199,6 +264,19 @@ class CurriculumVersionTable extends _i1.Table<int?> {
       'status',
       this,
     );
+    totalCreditsRequired = _i1.ColumnInt(
+      'totalCreditsRequired',
+      this,
+    );
+    revision = _i1.ColumnInt(
+      'revision',
+      this,
+      hasDefault: true,
+    );
+    publishedAt = _i1.ColumnDateTime(
+      'publishedAt',
+      this,
+    );
   }
 
   late final CurriculumVersionUpdateTable updateTable;
@@ -209,7 +287,17 @@ class CurriculumVersionTable extends _i1.Table<int?> {
 
   late final _i1.ColumnInt effectiveYear;
 
+  /// DRAFT, PUBLISHED, ARCHIVED
   late final _i1.ColumnString status;
+
+  /// Tong tin chi toi thieu de tot nghiep; bat buoc khi cong bo
+  late final _i1.ColumnInt totalCreditsRequired;
+
+  /// Tang moi lan luu ban nhap; dung chong ghi de dong thoi
+  late final _i1.ColumnInt revision;
+
+  /// Thoi diem cong bo chinh thuc
+  late final _i1.ColumnDateTime publishedAt;
 
   @override
   List<_i1.Column> get columns => [
@@ -218,6 +306,9 @@ class CurriculumVersionTable extends _i1.Table<int?> {
     versionCode,
     effectiveYear,
     status,
+    totalCreditsRequired,
+    revision,
+    publishedAt,
   ];
 }
 

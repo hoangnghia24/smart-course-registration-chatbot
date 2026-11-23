@@ -21,6 +21,7 @@ abstract class Student
     required this.studentCode,
     required this.curriculumVersionId,
     required this.academicStatus,
+    this.admissionYear,
   });
 
   factory Student({
@@ -29,6 +30,7 @@ abstract class Student
     required String studentCode,
     required int curriculumVersionId,
     required String academicStatus,
+    int? admissionYear,
   }) = _StudentImpl;
 
   factory Student.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -38,6 +40,7 @@ abstract class Student
       studentCode: jsonSerialization['studentCode'] as String,
       curriculumVersionId: jsonSerialization['curriculumVersionId'] as int,
       academicStatus: jsonSerialization['academicStatus'] as String,
+      admissionYear: jsonSerialization['admissionYear'] as int?,
     );
   }
 
@@ -56,6 +59,10 @@ abstract class Student
 
   String academicStatus;
 
+  /// F07 - Nam nhap hoc. Dung de tu dong chon phien ban CTDT theo nam
+  /// hieu luc (hoc che tin chi). Nullable de tuong thich du lieu cu.
+  int? admissionYear;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -68,6 +75,7 @@ abstract class Student
     String? studentCode,
     int? curriculumVersionId,
     String? academicStatus,
+    int? admissionYear,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -78,6 +86,7 @@ abstract class Student
       'studentCode': studentCode,
       'curriculumVersionId': curriculumVersionId,
       'academicStatus': academicStatus,
+      if (admissionYear != null) 'admissionYear': admissionYear,
     };
   }
 
@@ -125,12 +134,14 @@ class _StudentImpl extends Student {
     required String studentCode,
     required int curriculumVersionId,
     required String academicStatus,
+    int? admissionYear,
   }) : super._(
          id: id,
          userAccountId: userAccountId,
          studentCode: studentCode,
          curriculumVersionId: curriculumVersionId,
          academicStatus: academicStatus,
+         admissionYear: admissionYear,
        );
 
   /// Returns a shallow copy of this [Student]
@@ -143,6 +154,7 @@ class _StudentImpl extends Student {
     String? studentCode,
     int? curriculumVersionId,
     String? academicStatus,
+    Object? admissionYear = _Undefined,
   }) {
     return Student(
       id: id is int? ? id : this.id,
@@ -150,6 +162,7 @@ class _StudentImpl extends Student {
       studentCode: studentCode ?? this.studentCode,
       curriculumVersionId: curriculumVersionId ?? this.curriculumVersionId,
       academicStatus: academicStatus ?? this.academicStatus,
+      admissionYear: admissionYear is int? ? admissionYear : this.admissionYear,
     );
   }
 }
@@ -177,6 +190,11 @@ class StudentUpdateTable extends _i1.UpdateTable<StudentTable> {
         table.academicStatus,
         value,
       );
+
+  _i1.ColumnValue<int, int> admissionYear(int? value) => _i1.ColumnValue(
+    table.admissionYear,
+    value,
+  );
 }
 
 class StudentTable extends _i1.Table<int?> {
@@ -198,6 +216,10 @@ class StudentTable extends _i1.Table<int?> {
       'academicStatus',
       this,
     );
+    admissionYear = _i1.ColumnInt(
+      'admissionYear',
+      this,
+    );
   }
 
   late final StudentUpdateTable updateTable;
@@ -210,6 +232,10 @@ class StudentTable extends _i1.Table<int?> {
 
   late final _i1.ColumnString academicStatus;
 
+  /// F07 - Nam nhap hoc. Dung de tu dong chon phien ban CTDT theo nam
+  /// hieu luc (hoc che tin chi). Nullable de tuong thich du lieu cu.
+  late final _i1.ColumnInt admissionYear;
+
   @override
   List<_i1.Column> get columns => [
     id,
@@ -217,6 +243,7 @@ class StudentTable extends _i1.Table<int?> {
     studentCode,
     curriculumVersionId,
     academicStatus,
+    admissionYear,
   ];
 }
 

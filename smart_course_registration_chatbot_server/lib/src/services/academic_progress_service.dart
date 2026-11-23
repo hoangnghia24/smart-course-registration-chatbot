@@ -183,7 +183,8 @@ class AcademicProgressService {
           course: CourseItemDto(
             code: course.code,
             name: course.name,
-            credits: course.credits,
+            // F07: uu tien tin chi da chup trong phien ban CTDT
+            credits: item.credits ?? course.credits,
             description: course.description,
           ),
           semester: item.semester,
@@ -231,7 +232,9 @@ class AcademicProgressService {
 
       for (final item in items) {
         final course = coursesById[item.courseId]!;
-        uniqueCredits[item.courseId] = course.credits.toDouble();
+        // F07: tin chi snapshot trong phien ban, khong doi theo Course
+        uniqueCredits[item.courseId] = (item.credits ?? course.credits)
+            .toDouble();
       }
 
       totalCredits = uniqueCredits.values.fold<double>(

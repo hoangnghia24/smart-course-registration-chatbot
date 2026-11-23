@@ -32,7 +32,7 @@ class DevSeedAccounts {
             code: 'DEV-CNTT',
             name: 'Chương trình thử nghiệm - KHÔNG CHÍNH THỨC',
             majorCode: 'DEV',
-            status: 'DEMO',
+            status: 'ACTIVE',
           ),
         );
     final version =
@@ -48,7 +48,8 @@ class DevSeedAccounts {
             curriculumId: curriculum.id!,
             versionCode: 'DEV-2026',
             effectiveYear: 2026,
-            status: 'DEMO',
+            status: 'PUBLISHED',
+            publishedAt: DateTime.now().toUtc(),
           ),
         );
 
@@ -59,6 +60,7 @@ class DevSeedAccounts {
       String? studentCode,
       int? curriculumVersionId,
       String? lecturerCode,
+      int? admissionYear,
     }) async {
       final existing = await UserAccount.db.findFirstRow(
         session,
@@ -73,6 +75,7 @@ class DevSeedAccounts {
         studentCode: studentCode,
         curriculumVersionId: curriculumVersionId,
         lecturerCode: lecturerCode,
+        admissionYear: admissionYear,
       );
     }
 
@@ -93,6 +96,7 @@ class DevSeedAccounts {
       role: AccountRole.student,
       studentCode: 'DEV-SV001',
       curriculumVersionId: version.id!,
+      admissionYear: 2026,
     );
   }
 }

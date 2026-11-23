@@ -23,6 +23,7 @@ abstract class CurriculumItem
     required this.isRequired,
     this.groupId,
     this.itemOrder,
+    this.credits,
   });
 
   factory CurriculumItem({
@@ -33,6 +34,7 @@ abstract class CurriculumItem
     required bool isRequired,
     int? groupId,
     int? itemOrder,
+    int? credits,
   }) = _CurriculumItemImpl;
 
   factory CurriculumItem.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -46,6 +48,7 @@ abstract class CurriculumItem
       ),
       groupId: jsonSerialization['groupId'] as int?,
       itemOrder: jsonSerialization['itemOrder'] as int?,
+      credits: jsonSerialization['credits'] as int?,
     );
   }
 
@@ -68,6 +71,11 @@ abstract class CurriculumItem
 
   int? itemOrder;
 
+  /// F07 - So tin chi chup lai tu Course khi luu ban nhap.
+  /// Phien ban da cong bo khong doi khi Course bi sua tin chi.
+  /// Nullable chi de tuong thich du lieu cu (backfill trong migration).
+  int? credits;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -82,6 +90,7 @@ abstract class CurriculumItem
     bool? isRequired,
     int? groupId,
     int? itemOrder,
+    int? credits,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -94,6 +103,7 @@ abstract class CurriculumItem
       'isRequired': isRequired,
       if (groupId != null) 'groupId': groupId,
       if (itemOrder != null) 'itemOrder': itemOrder,
+      if (credits != null) 'credits': credits,
     };
   }
 
@@ -143,6 +153,7 @@ class _CurriculumItemImpl extends CurriculumItem {
     required bool isRequired,
     int? groupId,
     int? itemOrder,
+    int? credits,
   }) : super._(
          id: id,
          curriculumVersionId: curriculumVersionId,
@@ -151,6 +162,7 @@ class _CurriculumItemImpl extends CurriculumItem {
          isRequired: isRequired,
          groupId: groupId,
          itemOrder: itemOrder,
+         credits: credits,
        );
 
   /// Returns a shallow copy of this [CurriculumItem]
@@ -165,6 +177,7 @@ class _CurriculumItemImpl extends CurriculumItem {
     bool? isRequired,
     Object? groupId = _Undefined,
     Object? itemOrder = _Undefined,
+    Object? credits = _Undefined,
   }) {
     return CurriculumItem(
       id: id is int? ? id : this.id,
@@ -174,6 +187,7 @@ class _CurriculumItemImpl extends CurriculumItem {
       isRequired: isRequired ?? this.isRequired,
       groupId: groupId is int? ? groupId : this.groupId,
       itemOrder: itemOrder is int? ? itemOrder : this.itemOrder,
+      credits: credits is int? ? credits : this.credits,
     );
   }
 }
@@ -210,6 +224,11 @@ class CurriculumItemUpdateTable extends _i1.UpdateTable<CurriculumItemTable> {
     table.itemOrder,
     value,
   );
+
+  _i1.ColumnValue<int, int> credits(int? value) => _i1.ColumnValue(
+    table.credits,
+    value,
+  );
 }
 
 class CurriculumItemTable extends _i1.Table<int?> {
@@ -240,6 +259,10 @@ class CurriculumItemTable extends _i1.Table<int?> {
       'itemOrder',
       this,
     );
+    credits = _i1.ColumnInt(
+      'credits',
+      this,
+    );
   }
 
   late final CurriculumItemUpdateTable updateTable;
@@ -256,6 +279,11 @@ class CurriculumItemTable extends _i1.Table<int?> {
 
   late final _i1.ColumnInt itemOrder;
 
+  /// F07 - So tin chi chup lai tu Course khi luu ban nhap.
+  /// Phien ban da cong bo khong doi khi Course bi sua tin chi.
+  /// Nullable chi de tuong thich du lieu cu (backfill trong migration).
+  late final _i1.ColumnInt credits;
+
   @override
   List<_i1.Column> get columns => [
     id,
@@ -265,6 +293,7 @@ class CurriculumItemTable extends _i1.Table<int?> {
     isRequired,
     groupId,
     itemOrder,
+    credits,
   ];
 }
 
