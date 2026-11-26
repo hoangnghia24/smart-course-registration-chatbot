@@ -20,15 +20,12 @@ import '../endpoints/course_endpoint.dart' as _i6;
 import '../endpoints/curriculum_admin_endpoint.dart' as _i7;
 import '../endpoints/email_idp_endpoint.dart' as _i8;
 import '../endpoints/student_endpoint.dart' as _i9;
-import '../greetings/greeting_endpoint.dart' as _i10;
 import 'package:smart_course_registration_chatbot_server/src/generated/course_dto.dart'
-    as _i11;
-import 'package:smart_course_registration_chatbot_server/src/generated/curriculum_draft_input.dart'
-    as _i12;
+    as _i10;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i13;
+    as _i11;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i14;
+    as _i12;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -80,12 +77,6 @@ class Endpoints extends _i1.EndpointDispatch {
         ..initialize(
           server,
           'student',
-          null,
-        ),
-      'greeting': _i10.GreetingEndpoint()
-        ..initialize(
-          server,
-          'greeting',
           null,
         ),
     };
@@ -184,6 +175,16 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'conversationId': _i1.ParameterDescription(
+              name: 'conversationId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+            'clientRequestId': _i1.ParameterDescription(
+              name: 'clientRequestId',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -193,6 +194,8 @@ class Endpoints extends _i1.EndpointDispatch {
                   (endpoints['chatbot'] as _i5.ChatbotEndpoint).sendMessage(
                     session,
                     params['message'],
+                    params['conversationId'],
+                    params['clientRequestId'],
                   ),
         ),
       },
@@ -231,7 +234,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i11.CourseDto>(),
+              type: _i1.getType<_i10.CourseDto>(),
               nullable: false,
             ),
           },
@@ -250,7 +253,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i11.CourseDto>(),
+              type: _i1.getType<_i10.CourseDto>(),
               nullable: false,
             ),
           },
@@ -359,76 +362,6 @@ class Endpoints extends _i1.EndpointDispatch {
                         params['query'],
                       ),
         ),
-        'createCurriculum': _i1.MethodConnector(
-          name: 'createCurriculum',
-          params: {
-            'code': _i1.ParameterDescription(
-              name: 'code',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'name': _i1.ParameterDescription(
-              name: 'name',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'majorCode': _i1.ParameterDescription(
-              name: 'majorCode',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .createCurriculum(
-                        session,
-                        params['code'],
-                        params['name'],
-                        params['majorCode'],
-                      ),
-        ),
-        'createDraftVersion': _i1.MethodConnector(
-          name: 'createDraftVersion',
-          params: {
-            'curriculumId': _i1.ParameterDescription(
-              name: 'curriculumId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-            'versionCode': _i1.ParameterDescription(
-              name: 'versionCode',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'effectiveYear': _i1.ParameterDescription(
-              name: 'effectiveYear',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-            'copyFromVersionId': _i1.ParameterDescription(
-              name: 'copyFromVersionId',
-              type: _i1.getType<int?>(),
-              nullable: true,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .createDraftVersion(
-                        session,
-                        params['curriculumId'],
-                        params['versionCode'],
-                        params['effectiveYear'],
-                        params['copyFromVersionId'],
-                      ),
-        ),
         'getVersion': _i1.MethodConnector(
           name: 'getVersion',
           params: {
@@ -445,92 +378,6 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async =>
                   (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
                       .getVersion(
-                        session,
-                        params['versionId'],
-                      ),
-        ),
-        'saveDraftVersion': _i1.MethodConnector(
-          name: 'saveDraftVersion',
-          params: {
-            'input': _i1.ParameterDescription(
-              name: 'input',
-              type: _i1.getType<_i12.CurriculumDraftInput>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .saveDraftVersion(
-                        session,
-                        params['input'],
-                      ),
-        ),
-        'publishVersion': _i1.MethodConnector(
-          name: 'publishVersion',
-          params: {
-            'versionId': _i1.ParameterDescription(
-              name: 'versionId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-            'expectedRevision': _i1.ParameterDescription(
-              name: 'expectedRevision',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .publishVersion(
-                        session,
-                        params['versionId'],
-                        params['expectedRevision'],
-                      ),
-        ),
-        'archiveVersion': _i1.MethodConnector(
-          name: 'archiveVersion',
-          params: {
-            'versionId': _i1.ParameterDescription(
-              name: 'versionId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .archiveVersion(
-                        session,
-                        params['versionId'],
-                      ),
-        ),
-        'deleteDraftVersion': _i1.MethodConnector(
-          name: 'deleteDraftVersion',
-          params: {
-            'versionId': _i1.ParameterDescription(
-              name: 'versionId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .deleteDraftVersion(
                         session,
                         params['versionId'],
                       ),
@@ -579,64 +426,6 @@ class Endpoints extends _i1.EndpointDispatch {
                       .getStudentAssignment(
                         session,
                         params['studentCode'],
-                      ),
-        ),
-        'changeStudentVersion': _i1.MethodConnector(
-          name: 'changeStudentVersion',
-          params: {
-            'studentCode': _i1.ParameterDescription(
-              name: 'studentCode',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'versionId': _i1.ParameterDescription(
-              name: 'versionId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-            'reason': _i1.ParameterDescription(
-              name: 'reason',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .changeStudentVersion(
-                        session,
-                        params['studentCode'],
-                        params['versionId'],
-                        params['reason'],
-                      ),
-        ),
-        'setStudentAdmissionYear': _i1.MethodConnector(
-          name: 'setStudentAdmissionYear',
-          params: {
-            'studentCode': _i1.ParameterDescription(
-              name: 'studentCode',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'admissionYear': _i1.ParameterDescription(
-              name: 'admissionYear',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
-                      .setStudentAdmissionYear(
-                        session,
-                        params['studentCode'],
-                        params['admissionYear'],
                       ),
         ),
       },
@@ -836,33 +625,9 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    connectors['greeting'] = _i1.EndpointConnector(
-      name: 'greeting',
-      endpoint: endpoints['greeting']!,
-      methodConnectors: {
-        'hello': _i1.MethodConnector(
-          name: 'hello',
-          params: {
-            'name': _i1.ParameterDescription(
-              name: 'name',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i10.GreetingEndpoint).hello(
-                session,
-                params['name'],
-              ),
-        ),
-      },
-    );
-    modules['serverpod_auth_idp'] = _i13.Endpoints()
+    modules['serverpod_auth_idp'] = _i11.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i14.Endpoints()
+    modules['serverpod_auth_core'] = _i12.Endpoints()
       ..initializeEndpoints(server);
   }
 }

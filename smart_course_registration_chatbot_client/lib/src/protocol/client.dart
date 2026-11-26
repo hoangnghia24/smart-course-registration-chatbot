@@ -23,21 +23,17 @@ import 'package:smart_course_registration_chatbot_client/src/protocol/admin_curr
     as _i6;
 import 'package:smart_course_registration_chatbot_client/src/protocol/admin_curriculum_version_detail_dto.dart'
     as _i7;
-import 'package:smart_course_registration_chatbot_client/src/protocol/curriculum_draft_input.dart'
-    as _i8;
 import 'package:smart_course_registration_chatbot_client/src/protocol/admin_curriculum_version_summary_dto.dart'
-    as _i9;
+    as _i8;
 import 'package:smart_course_registration_chatbot_client/src/protocol/student_curriculum_assignment_dto.dart'
-    as _i10;
+    as _i9;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i11;
+    as _i10;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i12;
+    as _i11;
 import 'package:smart_course_registration_chatbot_client/src/protocol/curriculum_details_dto.dart'
-    as _i13;
-import 'package:smart_course_registration_chatbot_client/src/protocol/greetings/greeting.dart'
-    as _i14;
-import 'protocol.dart' as _i15;
+    as _i12;
+import 'protocol.dart' as _i13;
 
 /// {@category Endpoint}
 class EndpointAcademic extends _i1.EndpointRef {
@@ -119,12 +115,19 @@ class EndpointChatbot extends _i1.EndpointRef {
   String get name => 'chatbot';
 
   /// Hàm để sinh viên gửi câu hỏi.
-  _i2.Future<String> sendMessage(String message) =>
-      caller.callServerEndpoint<String>(
-        'chatbot',
-        'sendMessage',
-        {'message': message},
-      );
+  _i2.Future<String> sendMessage(
+    String message,
+    int? conversationId,
+    String? clientRequestId,
+  ) => caller.callServerEndpoint<String>(
+    'chatbot',
+    'sendMessage',
+    {
+      'message': message,
+      'conversationId': conversationId,
+      'clientRequestId': clientRequestId,
+    },
+  );
 }
 
 /// {@category Endpoint}
@@ -193,8 +196,8 @@ class EndpointCourse extends _i1.EndpointRef {
       );
 }
 
-/// F07 - API quan tri CTDT / phien ban / lien ket sinh vien.
-/// Tat ca phuong thuc chi danh cho Admin.
+/// API Admin CTDT chi doc. Khong cung cap cac ham tao/sua/xoa/gan CTDT.
+/// CHU Y: thay the endpoint cu va chay serverpod generate.
 /// {@category Endpoint}
 class EndpointCurriculumAdmin extends _i1.EndpointRef {
   EndpointCurriculumAdmin(_i1.EndpointCaller caller) : super(caller);
@@ -209,36 +212,6 @@ class EndpointCurriculumAdmin extends _i1.EndpointRef {
         {'query': query},
       );
 
-  _i2.Future<_i6.AdminCurriculumDto> createCurriculum(
-    String code,
-    String name,
-    String majorCode,
-  ) => caller.callServerEndpoint<_i6.AdminCurriculumDto>(
-    'curriculumAdmin',
-    'createCurriculum',
-    {
-      'code': code,
-      'name': name,
-      'majorCode': majorCode,
-    },
-  );
-
-  _i2.Future<_i7.AdminCurriculumVersionDetailDto> createDraftVersion(
-    int curriculumId,
-    String versionCode,
-    int effectiveYear,
-    int? copyFromVersionId,
-  ) => caller.callServerEndpoint<_i7.AdminCurriculumVersionDetailDto>(
-    'curriculumAdmin',
-    'createDraftVersion',
-    {
-      'curriculumId': curriculumId,
-      'versionCode': versionCode,
-      'effectiveYear': effectiveYear,
-      'copyFromVersionId': copyFromVersionId,
-    },
-  );
-
   _i2.Future<_i7.AdminCurriculumVersionDetailDto> getVersion(int versionId) =>
       caller.callServerEndpoint<_i7.AdminCurriculumVersionDetailDto>(
         'curriculumAdmin',
@@ -246,47 +219,11 @@ class EndpointCurriculumAdmin extends _i1.EndpointRef {
         {'versionId': versionId},
       );
 
-  _i2.Future<_i7.AdminCurriculumVersionDetailDto> saveDraftVersion(
-    _i8.CurriculumDraftInput input,
-  ) => caller.callServerEndpoint<_i7.AdminCurriculumVersionDetailDto>(
-    'curriculumAdmin',
-    'saveDraftVersion',
-    {'input': input},
-  );
-
-  _i2.Future<_i7.AdminCurriculumVersionDetailDto> publishVersion(
-    int versionId,
-    int expectedRevision,
-  ) => caller.callServerEndpoint<_i7.AdminCurriculumVersionDetailDto>(
-    'curriculumAdmin',
-    'publishVersion',
-    {
-      'versionId': versionId,
-      'expectedRevision': expectedRevision,
-    },
-  );
-
-  _i2.Future<_i7.AdminCurriculumVersionDetailDto> archiveVersion(
-    int versionId,
-  ) => caller.callServerEndpoint<_i7.AdminCurriculumVersionDetailDto>(
-    'curriculumAdmin',
-    'archiveVersion',
-    {'versionId': versionId},
-  );
-
-  _i2.Future<bool> deleteDraftVersion(int versionId) =>
-      caller.callServerEndpoint<bool>(
-        'curriculumAdmin',
-        'deleteDraftVersion',
-        {'versionId': versionId},
-      );
-
-  /// Xem truoc phien ban se gan cho sinh vien CTDT [curriculumCode]
-  /// nhap hoc nam [admissionYear]; null neu chua co phien ban phu hop.
-  _i2.Future<_i9.AdminCurriculumVersionSummaryDto?> previewVersionForAdmission(
+  /// Chi xem phien ban phu hop theo khoa, khong thuc hien gan.
+  _i2.Future<_i8.AdminCurriculumVersionSummaryDto?> previewVersionForAdmission(
     String curriculumCode,
     int admissionYear,
-  ) => caller.callServerEndpoint<_i9.AdminCurriculumVersionSummaryDto?>(
+  ) => caller.callServerEndpoint<_i8.AdminCurriculumVersionSummaryDto?>(
     'curriculumAdmin',
     'previewVersionForAdmission',
     {
@@ -295,38 +232,13 @@ class EndpointCurriculumAdmin extends _i1.EndpointRef {
     },
   );
 
-  _i2.Future<_i10.StudentCurriculumAssignmentDto> getStudentAssignment(
+  /// Chi xem phien ban dang gan cho sinh vien.
+  _i2.Future<_i9.StudentCurriculumAssignmentDto> getStudentAssignment(
     String studentCode,
-  ) => caller.callServerEndpoint<_i10.StudentCurriculumAssignmentDto>(
+  ) => caller.callServerEndpoint<_i9.StudentCurriculumAssignmentDto>(
     'curriculumAdmin',
     'getStudentAssignment',
     {'studentCode': studentCode},
-  );
-
-  _i2.Future<_i10.StudentCurriculumAssignmentDto> changeStudentVersion(
-    String studentCode,
-    int versionId,
-    String reason,
-  ) => caller.callServerEndpoint<_i10.StudentCurriculumAssignmentDto>(
-    'curriculumAdmin',
-    'changeStudentVersion',
-    {
-      'studentCode': studentCode,
-      'versionId': versionId,
-      'reason': reason,
-    },
-  );
-
-  _i2.Future<_i10.StudentCurriculumAssignmentDto> setStudentAdmissionYear(
-    String studentCode,
-    int admissionYear,
-  ) => caller.callServerEndpoint<_i10.StudentCurriculumAssignmentDto>(
-    'curriculumAdmin',
-    'setStudentAdmissionYear',
-    {
-      'studentCode': studentCode,
-      'admissionYear': admissionYear,
-    },
   );
 }
 
@@ -334,7 +246,7 @@ class EndpointCurriculumAdmin extends _i1.EndpointRef {
 /// are made available on the server and enable the corresponding sign-in widget
 /// on the client.
 /// {@category Endpoint}
-class EndpointEmailIdp extends _i11.EndpointEmailIdpBase {
+class EndpointEmailIdp extends _i10.EndpointEmailIdpBase {
   EndpointEmailIdp(_i1.EndpointCaller caller) : super(caller);
 
   @override
@@ -350,10 +262,10 @@ class EndpointEmailIdp extends _i11.EndpointEmailIdpBase {
   ///
   /// Throws an [AuthUserBlockedException] if the auth user is blocked.
   @override
-  _i2.Future<_i12.AuthSuccess> login({
+  _i2.Future<_i11.AuthSuccess> login({
     required String email,
     required String password,
-  }) => caller.callServerEndpoint<_i12.AuthSuccess>(
+  }) => caller.callServerEndpoint<_i11.AuthSuccess>(
     'emailIdp',
     'login',
     {
@@ -418,10 +330,10 @@ class EndpointEmailIdp extends _i11.EndpointEmailIdpBase {
   ///
   /// Returns a session for the newly created user.
   @override
-  _i2.Future<_i12.AuthSuccess> finishRegistration({
+  _i2.Future<_i11.AuthSuccess> finishRegistration({
     required String registrationToken,
     required String password,
-  }) => caller.callServerEndpoint<_i12.AuthSuccess>(
+  }) => caller.callServerEndpoint<_i11.AuthSuccess>(
     'emailIdp',
     'finishRegistration',
     {
@@ -513,6 +425,7 @@ class EndpointEmailIdp extends _i11.EndpointEmailIdpBase {
   );
 }
 
+/// Chi sinh vien duoc doc CTDT dang duoc gan cho tai khoan cua minh.
 /// {@category Endpoint}
 class EndpointStudent extends _i1.EndpointRef {
   EndpointStudent(_i1.EndpointCaller caller) : super(caller);
@@ -520,41 +433,23 @@ class EndpointStudent extends _i1.EndpointRef {
   @override
   String get name => 'student';
 
-  _i2.Future<_i13.CurriculumDetailsDto?> getMyCurriculum() =>
-      caller.callServerEndpoint<_i13.CurriculumDetailsDto?>(
+  _i2.Future<_i12.CurriculumDetailsDto?> getMyCurriculum() =>
+      caller.callServerEndpoint<_i12.CurriculumDetailsDto?>(
         'student',
         'getMyCurriculum',
         {},
       );
 }
 
-/// This is an example endpoint that returns a greeting message through
-/// its [hello] method.
-/// {@category Endpoint}
-class EndpointGreeting extends _i1.EndpointRef {
-  EndpointGreeting(_i1.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'greeting';
-
-  /// Returns a personalized greeting message: "Hello {name}".
-  _i2.Future<_i14.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i14.Greeting>(
-        'greeting',
-        'hello',
-        {'name': name},
-      );
-}
-
 class Modules {
   Modules(Client client) {
-    serverpod_auth_idp = _i11.Caller(client);
-    serverpod_auth_core = _i12.Caller(client);
+    serverpod_auth_idp = _i10.Caller(client);
+    serverpod_auth_core = _i11.Caller(client);
   }
 
-  late final _i11.Caller serverpod_auth_idp;
+  late final _i10.Caller serverpod_auth_idp;
 
-  late final _i12.Caller serverpod_auth_core;
+  late final _i11.Caller serverpod_auth_core;
 }
 
 class Client extends _i1.ServerpodClientShared {
@@ -577,7 +472,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i15.Protocol(),
+         _i13.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -594,7 +489,6 @@ class Client extends _i1.ServerpodClientShared {
     curriculumAdmin = EndpointCurriculumAdmin(this);
     emailIdp = EndpointEmailIdp(this);
     student = EndpointStudent(this);
-    greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
 
@@ -614,8 +508,6 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointStudent student;
 
-  late final EndpointGreeting greeting;
-
   late final Modules modules;
 
   @override
@@ -628,7 +520,6 @@ class Client extends _i1.ServerpodClientShared {
     'curriculumAdmin': curriculumAdmin,
     'emailIdp': emailIdp,
     'student': student,
-    'greeting': greeting,
   };
 
   @override

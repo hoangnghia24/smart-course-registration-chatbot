@@ -23,11 +23,11 @@ import 'admin_curriculum_item_dto.dart' as _i9;
 import 'admin_curriculum_version_detail_dto.dart' as _i10;
 import 'admin_curriculum_version_summary_dto.dart' as _i11;
 import 'app_exception.dart' as _i12;
-import 'course_dto.dart' as _i13;
-import 'course_item_dto.dart' as _i14;
-import 'course_section.dart' as _i15;
-import 'current_user_dto.dart' as _i16;
-import 'curriculum_cohort_dto.dart' as _i17;
+import 'chatbot_message_role.dart' as _i13;
+import 'course_dto.dart' as _i14;
+import 'course_item_dto.dart' as _i15;
+import 'course_section.dart' as _i16;
+import 'current_user_dto.dart' as _i17;
 import 'curriculum_details_dto.dart' as _i18;
 import 'curriculum_draft_input.dart' as _i19;
 import 'curriculum_dto.dart' as _i20;
@@ -57,11 +57,11 @@ export 'admin_curriculum_item_dto.dart';
 export 'admin_curriculum_version_detail_dto.dart';
 export 'admin_curriculum_version_summary_dto.dart';
 export 'app_exception.dart';
+export 'chatbot_message_role.dart';
 export 'course_dto.dart';
 export 'course_item_dto.dart';
 export 'course_section.dart';
 export 'current_user_dto.dart';
-export 'curriculum_cohort_dto.dart';
 export 'curriculum_details_dto.dart';
 export 'curriculum_draft_input.dart';
 export 'curriculum_dto.dart';
@@ -141,20 +141,20 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i12.AppException) {
       return _i12.AppException.fromJson(data) as T;
     }
-    if (t == _i13.CourseDto) {
-      return _i13.CourseDto.fromJson(data) as T;
+    if (t == _i13.ChatbotMessageRole) {
+      return _i13.ChatbotMessageRole.fromJson(data) as T;
     }
-    if (t == _i14.CourseItemDto) {
-      return _i14.CourseItemDto.fromJson(data) as T;
+    if (t == _i14.CourseDto) {
+      return _i14.CourseDto.fromJson(data) as T;
     }
-    if (t == _i15.CourseSection) {
-      return _i15.CourseSection.fromJson(data) as T;
+    if (t == _i15.CourseItemDto) {
+      return _i15.CourseItemDto.fromJson(data) as T;
     }
-    if (t == _i16.CurrentUserDto) {
-      return _i16.CurrentUserDto.fromJson(data) as T;
+    if (t == _i16.CourseSection) {
+      return _i16.CourseSection.fromJson(data) as T;
     }
-    if (t == _i17.CurriculumCohortDto) {
-      return _i17.CurriculumCohortDto.fromJson(data) as T;
+    if (t == _i17.CurrentUserDto) {
+      return _i17.CurrentUserDto.fromJson(data) as T;
     }
     if (t == _i18.CurriculumDetailsDto) {
       return _i18.CurriculumDetailsDto.fromJson(data) as T;
@@ -231,21 +231,21 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i12.AppException?>()) {
       return (data != null ? _i12.AppException.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i13.CourseDto?>()) {
-      return (data != null ? _i13.CourseDto.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i14.CourseItemDto?>()) {
-      return (data != null ? _i14.CourseItemDto.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i15.CourseSection?>()) {
-      return (data != null ? _i15.CourseSection.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i16.CurrentUserDto?>()) {
-      return (data != null ? _i16.CurrentUserDto.fromJson(data) : null) as T;
-    }
-    if (t == _i1.getType<_i17.CurriculumCohortDto?>()) {
-      return (data != null ? _i17.CurriculumCohortDto.fromJson(data) : null)
+    if (t == _i1.getType<_i13.ChatbotMessageRole?>()) {
+      return (data != null ? _i13.ChatbotMessageRole.fromJson(data) : null)
           as T;
+    }
+    if (t == _i1.getType<_i14.CourseDto?>()) {
+      return (data != null ? _i14.CourseDto.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i15.CourseItemDto?>()) {
+      return (data != null ? _i15.CourseItemDto.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i16.CourseSection?>()) {
+      return (data != null ? _i16.CourseSection.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i17.CurrentUserDto?>()) {
+      return (data != null ? _i17.CurrentUserDto.fromJson(data) : null) as T;
     }
     if (t == _i1.getType<_i18.CurriculumDetailsDto?>()) {
       return (data != null ? _i18.CurriculumDetailsDto.fromJson(data) : null)
@@ -348,11 +348,11 @@ class Protocol extends _i1.SerializationManager {
       _i11.AdminCurriculumVersionSummaryDto =>
         'AdminCurriculumVersionSummaryDto',
       _i12.AppException => 'AppException',
-      _i13.CourseDto => 'CourseDto',
-      _i14.CourseItemDto => 'CourseItemDto',
-      _i15.CourseSection => 'CourseSection',
-      _i16.CurrentUserDto => 'CurrentUserDto',
-      _i17.CurriculumCohortDto => 'CurriculumCohortDto',
+      _i13.ChatbotMessageRole => 'ChatbotMessageRole',
+      _i14.CourseDto => 'CourseDto',
+      _i15.CourseItemDto => 'CourseItemDto',
+      _i16.CourseSection => 'CourseSection',
+      _i17.CurrentUserDto => 'CurrentUserDto',
       _i18.CurriculumDetailsDto => 'CurriculumDetailsDto',
       _i19.CurriculumDraftInput => 'CurriculumDraftInput',
       _i20.CurriculumDto => 'CurriculumDto',
@@ -402,16 +402,16 @@ class Protocol extends _i1.SerializationManager {
         return 'AdminCurriculumVersionSummaryDto';
       case _i12.AppException():
         return 'AppException';
-      case _i13.CourseDto():
+      case _i13.ChatbotMessageRole():
+        return 'ChatbotMessageRole';
+      case _i14.CourseDto():
         return 'CourseDto';
-      case _i14.CourseItemDto():
+      case _i15.CourseItemDto():
         return 'CourseItemDto';
-      case _i15.CourseSection():
+      case _i16.CourseSection():
         return 'CourseSection';
-      case _i16.CurrentUserDto():
+      case _i17.CurrentUserDto():
         return 'CurrentUserDto';
-      case _i17.CurriculumCohortDto():
-        return 'CurriculumCohortDto';
       case _i18.CurriculumDetailsDto():
         return 'CurriculumDetailsDto';
       case _i19.CurriculumDraftInput():
@@ -483,20 +483,20 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'AppException') {
       return deserialize<_i12.AppException>(data['data']);
     }
+    if (dataClassName == 'ChatbotMessageRole') {
+      return deserialize<_i13.ChatbotMessageRole>(data['data']);
+    }
     if (dataClassName == 'CourseDto') {
-      return deserialize<_i13.CourseDto>(data['data']);
+      return deserialize<_i14.CourseDto>(data['data']);
     }
     if (dataClassName == 'CourseItemDto') {
-      return deserialize<_i14.CourseItemDto>(data['data']);
+      return deserialize<_i15.CourseItemDto>(data['data']);
     }
     if (dataClassName == 'CourseSection') {
-      return deserialize<_i15.CourseSection>(data['data']);
+      return deserialize<_i16.CourseSection>(data['data']);
     }
     if (dataClassName == 'CurrentUserDto') {
-      return deserialize<_i16.CurrentUserDto>(data['data']);
-    }
-    if (dataClassName == 'CurriculumCohortDto') {
-      return deserialize<_i17.CurriculumCohortDto>(data['data']);
+      return deserialize<_i17.CurrentUserDto>(data['data']);
     }
     if (dataClassName == 'CurriculumDetailsDto') {
       return deserialize<_i18.CurriculumDetailsDto>(data['data']);

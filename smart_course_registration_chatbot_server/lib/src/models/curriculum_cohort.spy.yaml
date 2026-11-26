@@ -1,0 +1,23 @@
+### F07 - Phien ban CTDT ap dung cho (nganh, khoa tuyen sinh).
+### Mot phien ban co the ap dung cho nhieu khoa;
+### moi (nganh, khoa) chi co dung mot phien ban.
+class: CurriculumCohort
+table: app_curriculum_cohort
+serverOnly: true
+
+fields:
+  curriculumVersionId: int, relation(parent=app_curriculum_version, onDelete=Restrict)
+
+  ### Trung voi Curriculum.majorCode cua phien ban (service kiem tra)
+  majorCode: String
+
+  ### Nam nhap hoc / khoa tuyen sinh, vi du 2024
+  admissionYear: int
+
+indexes:
+  app_curriculum_cohort_unique:
+    fields: majorCode, admissionYear
+    unique: true
+
+  app_curriculum_cohort_version_idx:
+    fields: curriculumVersionId

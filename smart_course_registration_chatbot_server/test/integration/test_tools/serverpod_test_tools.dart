@@ -24,18 +24,14 @@ import 'package:smart_course_registration_chatbot_server/src/generated/admin_cur
     as _i7;
 import 'package:smart_course_registration_chatbot_server/src/generated/admin_curriculum_version_detail_dto.dart'
     as _i8;
-import 'package:smart_course_registration_chatbot_server/src/generated/curriculum_draft_input.dart'
-    as _i9;
 import 'package:smart_course_registration_chatbot_server/src/generated/admin_curriculum_version_summary_dto.dart'
-    as _i10;
+    as _i9;
 import 'package:smart_course_registration_chatbot_server/src/generated/student_curriculum_assignment_dto.dart'
-    as _i11;
+    as _i10;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i12;
+    as _i11;
 import 'package:smart_course_registration_chatbot_server/src/generated/curriculum_details_dto.dart'
-    as _i13;
-import 'package:smart_course_registration_chatbot_server/src/generated/greetings/greeting.dart'
-    as _i14;
+    as _i12;
 import 'package:smart_course_registration_chatbot_server/src/generated/protocol.dart';
 import 'package:smart_course_registration_chatbot_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -165,8 +161,6 @@ class TestEndpoints {
   late final _EmailIdpEndpoint emailIdp;
 
   late final _StudentEndpoint student;
-
-  late final _GreetingEndpoint greeting;
 }
 
 class _InternalTestEndpoints extends TestEndpoints
@@ -205,10 +199,6 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     student = _StudentEndpoint(
-      endpoints,
-      serializationManager,
-    );
-    greeting = _GreetingEndpoint(
       endpoints,
       serializationManager,
     );
@@ -412,6 +402,8 @@ class _ChatbotEndpoint {
   _i3.Future<String> sendMessage(
     _i1.TestSessionBuilder sessionBuilder,
     String message,
+    int? conversationId,
+    String? clientRequestId,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -424,7 +416,11 @@ class _ChatbotEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'chatbot',
           methodName: 'sendMessage',
-          parameters: _i1.testObjectToJson({'message': message}),
+          parameters: _i1.testObjectToJson({
+            'message': message,
+            'conversationId': conversationId,
+            'clientRequestId': clientRequestId,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -689,82 +685,6 @@ class _CurriculumAdminEndpoint {
     });
   }
 
-  _i3.Future<_i7.AdminCurriculumDto> createCurriculum(
-    _i1.TestSessionBuilder sessionBuilder,
-    String code,
-    String name,
-    String majorCode,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'createCurriculum',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'createCurriculum',
-          parameters: _i1.testObjectToJson({
-            'code': code,
-            'name': name,
-            'majorCode': majorCode,
-          }),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i7.AdminCurriculumDto>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<_i8.AdminCurriculumVersionDetailDto> createDraftVersion(
-    _i1.TestSessionBuilder sessionBuilder,
-    int curriculumId,
-    String versionCode,
-    int effectiveYear,
-    int? copyFromVersionId,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'createDraftVersion',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'createDraftVersion',
-          parameters: _i1.testObjectToJson({
-            'curriculumId': curriculumId,
-            'versionCode': versionCode,
-            'effectiveYear': effectiveYear,
-            'copyFromVersionId': copyFromVersionId,
-          }),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i8.AdminCurriculumVersionDetailDto>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
   _i3.Future<_i8.AdminCurriculumVersionDetailDto> getVersion(
     _i1.TestSessionBuilder sessionBuilder,
     int versionId,
@@ -796,135 +716,7 @@ class _CurriculumAdminEndpoint {
     });
   }
 
-  _i3.Future<_i8.AdminCurriculumVersionDetailDto> saveDraftVersion(
-    _i1.TestSessionBuilder sessionBuilder,
-    _i9.CurriculumDraftInput input,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'saveDraftVersion',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'saveDraftVersion',
-          parameters: _i1.testObjectToJson({'input': input}),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i8.AdminCurriculumVersionDetailDto>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<_i8.AdminCurriculumVersionDetailDto> publishVersion(
-    _i1.TestSessionBuilder sessionBuilder,
-    int versionId,
-    int expectedRevision,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'publishVersion',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'publishVersion',
-          parameters: _i1.testObjectToJson({
-            'versionId': versionId,
-            'expectedRevision': expectedRevision,
-          }),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i8.AdminCurriculumVersionDetailDto>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<_i8.AdminCurriculumVersionDetailDto> archiveVersion(
-    _i1.TestSessionBuilder sessionBuilder,
-    int versionId,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'archiveVersion',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'archiveVersion',
-          parameters: _i1.testObjectToJson({'versionId': versionId}),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i8.AdminCurriculumVersionDetailDto>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<bool> deleteDraftVersion(
-    _i1.TestSessionBuilder sessionBuilder,
-    int versionId,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'deleteDraftVersion',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'deleteDraftVersion',
-          parameters: _i1.testObjectToJson({'versionId': versionId}),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<bool>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<_i10.AdminCurriculumVersionSummaryDto?> previewVersionForAdmission(
+  _i3.Future<_i9.AdminCurriculumVersionSummaryDto?> previewVersionForAdmission(
     _i1.TestSessionBuilder sessionBuilder,
     String curriculumCode,
     int admissionYear,
@@ -951,7 +743,7 @@ class _CurriculumAdminEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i10.AdminCurriculumVersionSummaryDto?>);
+                as _i3.Future<_i9.AdminCurriculumVersionSummaryDto?>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -959,7 +751,7 @@ class _CurriculumAdminEndpoint {
     });
   }
 
-  _i3.Future<_i11.StudentCurriculumAssignmentDto> getStudentAssignment(
+  _i3.Future<_i10.StudentCurriculumAssignmentDto> getStudentAssignment(
     _i1.TestSessionBuilder sessionBuilder,
     String studentCode,
   ) async {
@@ -982,79 +774,7 @@ class _CurriculumAdminEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i11.StudentCurriculumAssignmentDto>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<_i11.StudentCurriculumAssignmentDto> changeStudentVersion(
-    _i1.TestSessionBuilder sessionBuilder,
-    String studentCode,
-    int versionId,
-    String reason,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'changeStudentVersion',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'changeStudentVersion',
-          parameters: _i1.testObjectToJson({
-            'studentCode': studentCode,
-            'versionId': versionId,
-            'reason': reason,
-          }),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i11.StudentCurriculumAssignmentDto>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<_i11.StudentCurriculumAssignmentDto> setStudentAdmissionYear(
-    _i1.TestSessionBuilder sessionBuilder,
-    String studentCode,
-    int admissionYear,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'curriculumAdmin',
-            method: 'setStudentAdmissionYear',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'curriculumAdmin',
-          methodName: 'setStudentAdmissionYear',
-          parameters: _i1.testObjectToJson({
-            'studentCode': studentCode,
-            'admissionYear': admissionYear,
-          }),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i11.StudentCurriculumAssignmentDto>);
+                as _i3.Future<_i10.StudentCurriculumAssignmentDto>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1073,7 +793,7 @@ class _EmailIdpEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i12.AuthSuccess> login(
+  _i3.Future<_i11.AuthSuccess> login(
     _i1.TestSessionBuilder sessionBuilder, {
     required String email,
     required String password,
@@ -1100,7 +820,7 @@ class _EmailIdpEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i12.AuthSuccess>);
+                as _i3.Future<_i11.AuthSuccess>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1174,7 +894,7 @@ class _EmailIdpEndpoint {
     });
   }
 
-  _i3.Future<_i12.AuthSuccess> finishRegistration(
+  _i3.Future<_i11.AuthSuccess> finishRegistration(
     _i1.TestSessionBuilder sessionBuilder, {
     required String registrationToken,
     required String password,
@@ -1201,7 +921,7 @@ class _EmailIdpEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i12.AuthSuccess>);
+                as _i3.Future<_i11.AuthSuccess>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1349,7 +1069,7 @@ class _StudentEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i13.CurriculumDetailsDto?> getMyCurriculum(
+  _i3.Future<_i12.CurriculumDetailsDto?> getMyCurriculum(
     _i1.TestSessionBuilder sessionBuilder,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -1371,49 +1091,7 @@ class _StudentEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i13.CurriculumDetailsDto?>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-}
-
-class _GreetingEndpoint {
-  _GreetingEndpoint(
-    this._endpointDispatch,
-    this._serializationManager,
-  );
-
-  final _i2.EndpointDispatch _endpointDispatch;
-
-  final _i2.SerializationManager _serializationManager;
-
-  _i3.Future<_i14.Greeting> hello(
-    _i1.TestSessionBuilder sessionBuilder,
-    String name,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'greeting',
-            method: 'hello',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'greeting',
-          methodName: 'hello',
-          parameters: _i1.testObjectToJson({'name': name}),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i14.Greeting>);
+                as _i3.Future<_i12.CurriculumDetailsDto?>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

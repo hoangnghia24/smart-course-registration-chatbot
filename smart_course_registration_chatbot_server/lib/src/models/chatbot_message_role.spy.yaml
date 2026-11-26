@@ -1,0 +1,5 @@
+enum: ChatbotMessageRole
+serialized: byName
+values:
+  - user
+  - assistant
