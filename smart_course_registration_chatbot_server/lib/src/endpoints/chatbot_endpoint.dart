@@ -2,7 +2,8 @@ import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
 import '../security/account_guard.dart';
-import '../services/ai/local_llm_chat_service_qwen35.dart';
+import '../services/ai/ai_service.dart';
+import '../services/ai/rag_service.dart';
 
 typedef ChatbotAnswerGenerator =
     Future<String> Function(
@@ -12,9 +13,103 @@ typedef ChatbotAnswerGenerator =
 
 class ChatbotEndpoint extends Endpoint {
   ChatbotEndpoint({ChatbotAnswerGenerator? answerGenerator})
-    : _answerGenerator = answerGenerator ?? LocalLlmChatService.sendMessage;
+    : _answerGenerator = answerGenerator;
 
-  final ChatbotAnswerGenerator _answerGenerator;
+  final ChatbotAnswerGenerator? _answerGenerator;
+
+  static Future<String> _generateAnswer(
+    Session session,
+    String question,
+    int studentId,
+  ) async {
+    final student = await Student.db.findById(session, studentId);
+    final version = student == null
+        ? null
+        : await CurriculumVersion.db.findById(
+            session,
+            student.curriculumVersionId,
+          );
+    final curriculum = version == null
+        ? null
+        : await Curriculum.db.findById(session, version.curriculumId);
+    final program = _resolveRagProgram(curriculum, student?.studentCode);
+    final cohort = _resolveRagCohort(student, version);
+    final context = await RagService.instance().retrieve(
+      question,
+      defaultProgram: program,
+      defaultCohort: cohort,
+    );
+    session.log(
+      'RAG: program=${program ?? 'unknown'}, cohort=${cohort ?? 'unknown'}, '
+      '${context.length} ký tự ngữ cảnh.',
+      level: LogLevel.info,
+    );
+
+    if (_requiresRagClarification(context)) return context;
+    return AiService.instance.generateAnswer(question, context);
+  }
+
+  static bool _requiresRagClarification(String context) =>
+      context.startsWith('Chưa xác định được chương trình') ||
+      context.startsWith('Chưa xác định được khóa') ||
+      context.startsWith('Câu hỏi đang nhắc đến nhiều chương trình') ||
+      context.startsWith('Dữ liệu RAG hiện chỉ hỗ trợ khóa');
+
+  static String? _resolveRagProgram(
+    Curriculum? curriculum,
+    String? studentCode,
+  ) {
+    final curriculumCode = curriculum?.code.trim().toUpperCase();
+    if (curriculumCode != null) {
+      if (const {'CNTT', 'ATTT', 'KTDL', 'CNTT-JP'}.contains(curriculumCode)) {
+        return curriculumCode;
+      }
+      if (curriculumCode.contains('CNTT') &&
+          (curriculumCode.contains('JP') || curriculumCode.contains('NHAT'))) {
+        return 'CNTT-JP';
+      }
+    }
+
+    final majorCode = curriculum?.majorCode.trim();
+    const programsByMajorCode = {
+      '7480201': 'CNTT',
+      '7480202': 'ATTT',
+      '7480203': 'KTDL',
+    };
+    final programByMajor = programsByMajorCode[majorCode];
+    if (programByMajor != null) return programByMajor;
+
+    final normalizedStudentCode = studentCode?.trim();
+    if (normalizedStudentCode != null &&
+        RegExp(r'^\d{8}$').hasMatch(normalizedStudentCode) &&
+        normalizedStudentCode.substring(2, 5) == '110') {
+      return 'CNTT';
+    }
+    return null;
+  }
+
+  static int? _resolveRagCohort(
+    Student? student,
+    CurriculumVersion? version,
+  ) {
+    final admissionYear =
+        student?.admissionYear ?? _admissionYearFromCode(student?.studentCode);
+    if (admissionYear != null) {
+      if (admissionYear >= 2026) return 2026;
+      if (admissionYear >= 2023) return 2023;
+    }
+
+    final effectiveYear = version?.effectiveYear;
+    return effectiveYear == 2023 || effectiveYear == 2026
+        ? effectiveYear
+        : null;
+  }
+
+  static int? _admissionYearFromCode(String? studentCode) {
+    final value = studentCode?.trim();
+    if (value == null || !RegExp(r'^\d{8}$').hasMatch(value)) return null;
+    return 2000 + int.parse(value.substring(0, 2));
+  }
 
   @override
   bool get requireLogin => true;
@@ -75,10 +170,9 @@ class ChatbotEndpoint extends Endpoint {
     // 3. Gọi Local LLM thông qua Ollama trước transaction để không giữ
     // transaction database trong lúc chờ tác vụ mạng có thể kéo dài.
     // Không sử dụng Gemini API.
-    final answer = await _answerGenerator(
-      session,
-      question,
-    );
+    final answer = _answerGenerator == null
+        ? await _generateAnswer(session, question, studentId)
+        : await _answerGenerator(session, question);
 
     // 4. Chỉ khi AI trả lời thành công mới lưu trọn vẹn lượt trao đổi.
     await session.db.transaction((transaction) async {
