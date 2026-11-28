@@ -33,22 +33,13 @@ class RecommendationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isBlocked = isOfficial && course.eligible == false;
     final isRetake = isOfficial && _retakeFromBackend;
+    // Priority is an independent backend result. It must not be inferred from
+    // eligibility, and an item may show both labels at the same time.
     final isPriority =
-        isOfficial && course.eligible == true && course.priorityRank != null;
-    final isRed =
-        isBlocked ||
-        isRetake ||
-        (!isOfficial && course.progressStatus == 'FAILED');
+        isOfficial && course.priorityRank != null && course.priorityRank! > 0;
+    final isAcademicFailed = course.progressStatus == 'FAILED';
+    final isRed = isBlocked || isRetake || isAcademicFailed;
     final accent = isRed ? _red : const Color(0xFF2A6FC7);
-    final badge = isBlocked
-        ? 'Chưa đủ điều kiện'
-        : isRetake
-        ? 'Học lại'
-        : isPriority
-        ? 'Nên xem'
-        : isOfficial
-        ? (course.eligible == true ? 'Đủ điều kiện' : 'Chưa xác định')
-        : (course.progressStatus == 'FAILED' ? 'Chưa đạt' : 'Trong CTĐT');
     final bg = isRed ? const Color(0xFFFFE9EB) : const Color(0xFFE7F0FF);
     // Nội dung nút theo Frame-9. Mở chi tiết cục bộ an toàn khi chưa có F05;
     // KHÔNG tuyên bố danh sách lớp là dữ liệu thật của backend.
@@ -61,12 +52,12 @@ class RecommendationCard extends StatelessWidget {
     final subtitleParts = <String>[];
     if (isRetake && course.lastAcademicScore != null) {
       subtitleParts.add('Điểm trước đó: ${course.lastAcademicScore}');
-    } else if (isPriority) {
-      // Nhãn thẻ theo Frame-9; giải thích BE đầy đủ vẫn ở bảng chi tiết.
-      subtitleParts.add('Môn liên quan lộ trình');
     } else if (isOfficial && course.explanations.isNotEmpty) {
+      // Explanations are backend-owned. Do not replace them with a UI guess.
       subtitleParts.add(course.explanations.first);
-    } else if (!isOfficial && course.progressStatus != null) {
+    } else if (isOfficial && course.reasonCodes.isNotEmpty) {
+      subtitleParts.add('Mã lý do: ${course.reasonCodes.first}');
+    } else if (course.progressStatus != null) {
       subtitleParts.add(_progressLabel(course.progressStatus));
     } else {
       subtitleParts.add(
@@ -114,27 +105,64 @@ class RecommendationCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: bg,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            badge,
-                            key: ValueKey('f24-badge-${course.code}'),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                              color: isRed ? _red : _navy,
-                            ),
-                          ),
-                        ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: isOfficial
+                          ? [
+                              _statusChip(
+                                key: ValueKey('f24-badge-${course.code}'),
+                                label: _eligibilityLabel(course),
+                                color: course.eligible == false
+                                    ? _red
+                                    : course.eligible == true
+                                    ? _navy
+                                    : _muted,
+                                background: course.eligible == false
+                                    ? const Color(0xFFFFE9EB)
+                                    : course.eligible == true
+                                    ? bg
+                                    : const Color(0xFFF0F3F7),
+                              ),
+                              if (isPriority)
+                                _statusChip(
+                                  key: ValueKey('f24-priority-${course.code}'),
+                                  label: 'Nên ưu tiên',
+                                  color: _navy,
+                                  background: const Color(0xFFE0EDFF),
+                                ),
+                              if (isRetake)
+                                _statusChip(
+                                  key: ValueKey('f24-retake-${course.code}'),
+                                  label: 'Học lại',
+                                  color: _red,
+                                  background: const Color(0xFFFFE9EB),
+                                ),
+                              if (isAcademicFailed && !isRetake)
+                                _statusChip(
+                                  key: ValueKey('f24-progress-${course.code}'),
+                                  label: 'Chưa đạt',
+                                  color: _red,
+                                  background: const Color(0xFFFFE9EB),
+                                ),
+                            ]
+                          : [
+                              _statusChip(
+                                key: ValueKey('f24-badge-${course.code}'),
+                                label: course.progressStatus == 'FAILED'
+                                    ? 'Chưa đạt'
+                                    : 'Trong CTĐT',
+                                color: course.progressStatus == 'FAILED'
+                                    ? _red
+                                    : _navy,
+                                background: course.progressStatus == 'FAILED'
+                                    ? const Color(0xFFFFE9EB)
+                                    : const Color(0xFFE7F0FF),
+                              ),
+                            ],
                     ),
                     const SizedBox(height: 5),
                     Text(
@@ -170,6 +198,34 @@ class RecommendationCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _statusChip({
+    required Key key,
+    required String label,
+    required Color color,
+    required Color background,
+  }) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: background,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(
+      label,
+      key: key,
+      style: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: 12,
+        color: color,
+      ),
+    ),
+  );
+
+  String _eligibilityLabel(RecommendationCourse course) {
+    if (course.eligible == true) return 'Đủ điều kiện';
+    if (course.eligible == false) return 'Chưa đủ điều kiện';
+    return course.eligibilityStatus ?? 'Chưa xác định';
   }
 
   static String _progressLabel(String? status) => switch (status) {
