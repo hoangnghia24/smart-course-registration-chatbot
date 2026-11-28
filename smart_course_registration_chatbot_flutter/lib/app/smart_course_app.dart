@@ -6,6 +6,7 @@ import '../features/admin/admin_dashboard.dart';
 import '../features/auth/data/f01_auth_gateway.dart';
 import '../features/auth/f01_auth_controller.dart';
 import '../features/auth/login_demo_screen.dart';
+import '../features/chat/chatbot_session_scope.dart';
 import '../features/lecturer/lecturer_dashboard.dart';
 import '../features/student/student_dashboard.dart';
 
@@ -25,20 +26,46 @@ class SmartCourseApp extends StatefulWidget {
 class _SmartCourseAppState extends State<SmartCourseApp> {
   DemoAuthController? _demoController;
   F01AuthController? _realController;
+  int _authSessionEpoch = 0;
+  bool _hadAuthenticatedUser = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.f01Gateway == null) {
-      _demoController = DemoAuthController();
+      _demoController = DemoAuthController()..addListener(_onAuthStateChanged);
     } else {
-      _realController = F01AuthController(widget.f01Gateway!);
+      _realController = F01AuthController(widget.f01Gateway!)
+        ..addListener(_onAuthStateChanged);
       _realController!.restoreSession();
     }
   }
 
+  void _onAuthStateChanged() {
+    final isAuthenticated = _realController != null
+        ? _realController!.user != null
+        : _demoController?.currentUser != null;
+    if (isAuthenticated && !_hadAuthenticatedUser) {
+      _authSessionEpoch += 1;
+    }
+    _hadAuthenticatedUser = isAuthenticated;
+  }
+
+  String? _currentChatbotSessionKey() {
+    if (_realController != null) {
+      final user = _realController!.user;
+      if (user == null) return null;
+      return 'real-${user.accountId}-$_authSessionEpoch';
+    }
+    final demoUser = _demoController?.currentUser;
+    if (demoUser == null) return null;
+    return 'demo-${demoUser.username}-$_authSessionEpoch';
+  }
+
   @override
   void dispose() {
+    _demoController?.removeListener(_onAuthStateChanged);
+    _realController?.removeListener(_onAuthStateChanged);
     _demoController?.dispose();
     _realController?.dispose();
     super.dispose();
@@ -50,13 +77,17 @@ class _SmartCourseAppState extends State<SmartCourseApp> {
     return AnimatedBuilder(
       animation: listenable,
       builder: (context, _) {
-        return MaterialApp(
-          title: 'Đăng ký học phần thông minh',
-          debugShowCheckedModeBanner: false,
-          theme: buildAppTheme(),
-          home: _realController != null
-              ? _buildRealHome(_realController!)
-              : _buildDemoHome(_demoController!),
+        return ChatbotSessionScope(
+          sessionKey: _currentChatbotSessionKey(),
+          isSimulatedSource: _realController == null,
+          child: MaterialApp(
+            title: 'Đăng ký học phần thông minh',
+            debugShowCheckedModeBanner: false,
+            theme: buildAppTheme(),
+            home: _realController != null
+                ? _buildRealHome(_realController!)
+                : _buildDemoHome(_demoController!),
+          ),
         );
       },
     );

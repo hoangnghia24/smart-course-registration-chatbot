@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/chatbot_repository.dart';
 import '../domain/chatbot_conversation.dart';
+import '../domain/chatbot_faq.dart';
 import '../domain/chatbot_message.dart';
 import '../domain/chatbot_repository_exception.dart';
 import 'chatbot_state.dart';
@@ -16,8 +17,16 @@ class ChatbotController extends ChangeNotifier {
     String? initialConversationId,
     this.conversationPageSize = 20,
     this.messagePageSize = 30,
+    List<ChatbotFaqItem> faqs = kApprovedChatbotFaqs,
+    DateTime Function()? clock,
+    this.faqDuplicateDebounce = const Duration(milliseconds: 350),
   })  : _repository = repository,
-        _initialConversationId = initialConversationId {
+        _initialConversationId = initialConversationId,
+        _clock = clock ?? DateTime.now,
+        _faqs = List<ChatbotFaqItem>.unmodifiable(faqs),
+        _faqById = <String, ChatbotFaqItem>{
+          for (final item in faqs) item.id: item,
+        } {
     if (conversationPageSize < 1) {
       throw ArgumentError.value(
         conversationPageSize,
@@ -36,6 +45,12 @@ class ChatbotController extends ChangeNotifier {
 
   final ChatbotRepository _repository;
   final String? _initialConversationId;
+  final DateTime Function() _clock;
+  final List<ChatbotFaqItem> _faqs;
+  final Map<String, ChatbotFaqItem> _faqById;
+  final Duration faqDuplicateDebounce;
+
+  List<ChatbotFaqItem> get faqs => _faqs;
 
   final int conversationPageSize;
   final int messagePageSize;
@@ -49,8 +64,12 @@ class ChatbotController extends ChangeNotifier {
   int _conversationGeneration = 0;
   int _messageGeneration = 0;
   int _olderMessagesGeneration = 0;
+  int _sendGeneration = 0;
   int _draftSequence = 0;
   int _clientRequestSequence = 0;
+  int _faqMessageSequence = 0;
+  String? _lastSelectedFaqId;
+  DateTime? _lastSelectedFaqAt;
 
   String _activeDraftKey = 'draft-0';
   final Set<String> _sendingKeys = <String>{};
@@ -201,6 +220,33 @@ class ChatbotController extends ChangeNotifier {
 
   Future<void> retryConversations() => loadConversations(refresh: true);
 
+  /// Đặt lại toàn bộ cuộc hội thoại hiện tại trong RAM về trạng thái trống.
+  ///
+  /// Lưu ý: Thao tác này chỉ xóa trạng thái trên RAM của Flutter và hủy bỏ
+  /// các phản hồi đang chờ hiển thị, không xóa bản ghi đã lưu trong PostgreSQL.
+  void resetConversationInMemory() {
+    _sendGeneration += 1;
+    _conversationGeneration += 1;
+    _messageGeneration += 1;
+    _olderMessagesGeneration += 1;
+    _draftSequence += 1;
+    _activeDraftKey = 'draft-$_draftSequence';
+    _sendingKeys.clear();
+    _failedSends.clear();
+    _deletingIds.clear();
+    _deletedConversationIds.clear();
+    _lastSelectedFaqId = null;
+    _lastSelectedFaqAt = null;
+
+    _emit(
+      ChatbotState(
+        conversationsStatus: ChatbotRequestStatus.loaded,
+        messagesStatus: ChatbotRequestStatus.loaded,
+        isInitialized: _state.isInitialized,
+      ),
+    );
+  }
+
   /// Tạo một vùng hội thoại mới ở phía giao diện.
   /// Backend chỉ tạo conversation thật khi gửi tin nhắn đầu tiên.
   void createNewConversation() {
@@ -208,6 +254,8 @@ class ChatbotController extends ChangeNotifier {
     _activeDraftKey = 'draft-$_draftSequence';
     _messageGeneration += 1;
     _olderMessagesGeneration += 1;
+    _lastSelectedFaqId = null;
+    _lastSelectedFaqAt = null;
 
     final failed = _failedSends[_activeDraftKey];
     _emit(
@@ -312,6 +360,61 @@ class ChatbotController extends ChangeNotifier {
     }
   }
 
+  /// Xử lý trả lời nhanh khi sinh viên chọn một câu hỏi thường gặp (FAQ) theo [faqId].
+  ///
+  /// - Tra cứu theo `id`, không so sánh chuỗi văn bản.
+  /// - Thêm ngay cặp tin nhắn (câu hỏi sinh viên + câu trả lời cố định) vào cùng
+  ///   danh sách tin nhắn của hội thoại RAM hiện tại.
+  /// - Tuyệt đối không hiển thị trạng thái đang gửi AI (`isSending`), không gọi
+  ///   Backend Serverpod, không gọi AI/RAG/Ollama và không lưu PostgreSQL.
+  /// - Không đổi `activeConversationId` để không tạo mã hội thoại giả gửi lên Server.
+  /// - Chống nhấn đúp ngoài ý muốn trong khoảng [faqDuplicateDebounce] nhưng vẫn
+  ///   cho phép sinh viên chọn lại câu hỏi đó khi cần.
+  bool selectFaqById(String faqId) {
+    if (_disposed) return false;
+    final normalizedId = faqId.trim();
+    if (normalizedId.isEmpty) return false;
+
+    final faq = _faqById[normalizedId];
+    if (faq == null) return false;
+
+    final now = _clock();
+    if (_lastSelectedFaqId == normalizedId &&
+        _lastSelectedFaqAt != null &&
+        now.difference(_lastSelectedFaqAt!) < faqDuplicateDebounce) {
+      return false;
+    }
+
+    _lastSelectedFaqId = normalizedId;
+    _lastSelectedFaqAt = now;
+
+    final localConversationKey = _state.activeConversationId ?? _activeDraftKey;
+    final userMsg = ChatbotMessage(
+      id: 'faq-user-${++_faqMessageSequence}',
+      conversationId: localConversationKey,
+      role: ChatbotMessageRole.user,
+      content: faq.question,
+      createdAt: now,
+    );
+    final assistantMsg = ChatbotMessage(
+      id: 'faq-assistant-${++_faqMessageSequence}',
+      conversationId: localConversationKey,
+      role: ChatbotMessageRole.assistant,
+      content: faq.answer,
+      createdAt: now,
+    );
+
+    _emit(
+      _state.copyWith(
+        messages: _mergeMessages(_state.messages, [userMsg, assistantMsg]),
+        messagesStatus: ChatbotRequestStatus.loaded,
+        messagesError: null,
+        isInitialized: true,
+      ),
+    );
+    return true;
+  }
+
   /// Gửi tin nhắn trong hội thoại hiện tại.
   /// Một hội thoại không thể gửi hai request đồng thời; các hội thoại khác
   /// vẫn có thể tiếp tục hoạt động độc lập.
@@ -353,6 +456,7 @@ class ChatbotController extends ChangeNotifier {
 
     _sendingKeys.add(contextKey);
     _failedSends.remove(contextKey);
+    final sendGeneration = _sendGeneration;
     _emitForActiveContext(
       contextKey,
       _state.copyWith(
@@ -369,7 +473,7 @@ class ChatbotController extends ChangeNotifier {
         conversationId: conversationId,
         clientRequestId: clientRequestId,
       );
-      if (_disposed) return;
+      if (_disposed || sendGeneration != _sendGeneration) return;
 
       if (!_deletedConversationIds.contains(result.conversation.id)) {
         _conversationGeneration += 1;
@@ -412,7 +516,7 @@ class ChatbotController extends ChangeNotifier {
         _emit(next);
       }
     } catch (error) {
-      if (_disposed) return;
+      if (_disposed || sendGeneration != _sendGeneration) return;
       final exception = _asRepositoryException(
         error,
         fallbackMessage: 'Không thể gửi tin nhắn chatbot.',
@@ -430,7 +534,7 @@ class ChatbotController extends ChangeNotifier {
       );
     } finally {
       _sendingKeys.remove(contextKey);
-      if (!_disposed) {
+      if (!_disposed && sendGeneration == _sendGeneration) {
         _emit(
           _state.copyWith(
             isSending: _sendingKeys.contains(_activeContextKey),
@@ -676,9 +780,12 @@ class ChatbotController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _sendGeneration += 1;
     _conversationGeneration += 1;
     _messageGeneration += 1;
     _olderMessagesGeneration += 1;
+    _sendingKeys.clear();
+    _failedSends.clear();
     super.dispose();
   }
 }

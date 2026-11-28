@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/shared_app_header.dart';
 import 'chatbot_repository_scope.dart';
+import 'chatbot_session_scope.dart';
 import 'data/chatbot_repository.dart';
+import 'domain/chatbot_faq.dart';
 import 'domain/chatbot_message.dart';
 import 'domain/chatbot_related_course.dart';
 import 'presentation/chatbot_controller.dart';
@@ -30,6 +32,7 @@ class ChatbotFigmaScreen extends StatefulWidget {
     this.repository,
     this.initialConversationId,
     this.isSimulatedSource = true,
+    this.singleConversationMode = false,
   });
 
   final ChatbotController? controller;
@@ -38,6 +41,12 @@ class ChatbotFigmaScreen extends StatefulWidget {
 
   /// Chỉ đặt false khi nguồn Backend chính thức đã được tích hợp và kiểm chứng.
   final bool isSimulatedSource;
+
+  /// Chế độ chỉ duy trì một cuộc hội thoại trong RAM của phiên đăng nhập hiện tại.
+  /// Khi bật (hoặc khi lấy controller từ [ChatbotSessionScope]), các nút quản lý
+  /// đa hội thoại (danh sách lịch sử, xóa hội thoại, tải tin cũ) sẽ được ẩn,
+  /// và nút làm mới chỉ đặt lại hội thoại trong RAM.
+  final bool singleConversationMode;
 
   @override
   State<ChatbotFigmaScreen> createState() => _ChatbotFigmaScreenState();
@@ -59,8 +68,19 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
 
   ChatbotController? _controller;
   bool _ownsController = false;
+  bool _fromSessionScope = false;
+  bool? _sessionIsSimulatedSource;
+  bool _isInlineFaqExpanded = false;
   String? _lastVisibleMessageId;
   String? _lastVisibleConversationId;
+
+  bool get _isSingleConversationMode =>
+      widget.singleConversationMode || _fromSessionScope;
+
+  bool get _effectiveIsSimulatedSource =>
+      _fromSessionScope && _sessionIsSimulatedSource != null
+          ? _sessionIsSimulatedSource!
+          : widget.isSimulatedSource;
 
   @override
   void initState() {
@@ -81,11 +101,32 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_controller != null ||
-        widget.controller != null ||
-        widget.repository != null) {
+    if (widget.controller != null || widget.repository != null) {
       return;
     }
+
+    final sessionController = ChatbotSessionScope.maybeControllerOf(context);
+    if (sessionController != null) {
+      _sessionIsSimulatedSource =
+          ChatbotSessionScope.maybeIsSimulatedSourceOf(context);
+      if (!identical(_controller, sessionController)) {
+        _detachController();
+        _fromSessionScope = true;
+        _attachController(sessionController, ownsController: false);
+      }
+      return;
+    }
+
+    if (_fromSessionScope && sessionController == null) {
+      _detachController();
+      _fromSessionScope = false;
+      _sessionIsSimulatedSource = null;
+    }
+
+    if (_controller != null) {
+      return;
+    }
+
     final repository = ChatbotRepositoryScope.maybeOf(context);
     if (repository != null) {
       _attachController(
@@ -96,6 +137,15 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
         ownsController: true,
       );
     }
+  }
+
+  void _detachController() {
+    _controller?.removeListener(_onControllerUpdated);
+    if (_ownsController) {
+      _controller?.dispose();
+    }
+    _controller = null;
+    _ownsController = false;
   }
 
   void _attachController(
@@ -155,6 +205,17 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
     setState(() {});
   }
 
+  void _selectFaq(ChatbotController controller, ChatbotFaqItem faq) {
+    final added = controller.selectFaqById(faq.id);
+    if (!added) return;
+    if (_isInlineFaqExpanded) {
+      setState(() {
+        _isInlineFaqExpanded = false;
+      });
+    }
+    _scrollToBottomAfterFrame();
+  }
+
   void _sendQuestion() {
     final question = _questionController.text.trim();
     if (question.isEmpty) return;
@@ -190,6 +251,14 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
       );
   }
 
+  /// Khoảng thụt đầu dòng bên trái của nội dung trợ lý (36 px ở màn hình thường,
+  /// tự động thu về 0 khi chiều rộng khả dụng của danh sách bị bóp hẹp để
+  /// tránh `BoxConstraints` còn ~1.6 px gây RenderFlex overflow).
+  double _adaptiveAssistantIndent(double availableWidth) {
+    if (availableWidth < 220) return 0;
+    return 36;
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
@@ -203,75 +272,92 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
       backgroundColor: _pageBackground,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: ListView(
-                key: const Key('chatbot_conversation_list'),
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(8, 14, 20, 20),
-                children: [
-                  _buildDateLabel(),
-                  const SizedBox(height: 16),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 36, bottom: 8),
-                    child: Text(
-                      'NỘI DUNG MINH HỌA · CHƯA KẾT NỐI AI',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                        color: _muted,
-                      ),
+        child: LayoutBuilder(
+          builder: (context, viewportConstraints) {
+            final showFixedChrome = viewportConstraints.maxHeight >= 220 &&
+                viewportConstraints.maxWidth >= 200;
+            final horizontalPad = viewportConstraints.maxWidth < 180 ? 4.0 : 8.0;
+            final rightPad = viewportConstraints.maxWidth < 180 ? 4.0 : 20.0;
+            return Column(
+              children: [
+                if (showFixedChrome) _buildHeader(context),
+                Expanded(
+                  child: ListView(
+                    key: const Key('chatbot_conversation_list'),
+                    controller: _scrollController,
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPad,
+                      14,
+                      rightPad,
+                      20,
                     ),
-                  ),
-                  _assistantBubble(
-                    child: const Text(
-                      'Chào Nguyên! Mình có thể giúp gì cho bạn trong quá trình đăng ký học phần học kỳ này?',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.45,
-                        color: _darkText,
+                    children: [
+                      _buildDateLabel(),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: _adaptiveAssistantIndent(
+                            viewportConstraints.maxWidth,
+                          ),
+                          bottom: 8,
+                        ),
+                        child: const Text(
+                          'NỘI DUNG MINH HỌA · CHƯA KẾT NỐI AI',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: _muted,
+                          ),
+                        ),
                       ),
-                    ),
+                      _assistantBubble(
+                        child: const Text(
+                          'Chào Nguyên! Mình có thể giúp gì cho bạn trong quá trình đăng ký học phần học kỳ này?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.45,
+                            color: _darkText,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildSuggestion(
+                        icon: Icons.auto_awesome,
+                        text: 'Gợi ý môn chuyên ngành cho mình',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSuggestion(
+                        icon: Icons.help_outline_rounded,
+                        text: 'Tại sao mình không đăng ký được AI?',
+                      ),
+                      const SizedBox(height: 14),
+                      _buildUserSampleMessage(),
+                      const SizedBox(height: 14),
+                      _assistantBubble(child: _buildSampleRecommendation()),
+                      const SizedBox(height: 10),
+                      _buildClassCard(),
+                      const SizedBox(height: 14),
+                      _buildPaginationDots(),
+                      if (_lastQuestion != null) ...[
+                        const SizedBox(height: 16),
+                        _buildUserMessage(_lastQuestion!),
+                      ],
+                      if (_previewState != ChatbotPreviewState.initial) ...[
+                        const SizedBox(height: 12),
+                        _assistantBubble(child: _buildStateContent()),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  _buildSuggestion(
-                    icon: Icons.auto_awesome,
-                    text: 'Gợi ý môn chuyên ngành cho mình',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildSuggestion(
-                    icon: Icons.help_outline_rounded,
-                    text: 'Tại sao mình không đăng ký được AI?',
-                  ),
-                  const SizedBox(height: 14),
-                  _buildUserSampleMessage(),
-                  const SizedBox(height: 14),
-                  _assistantBubble(child: _buildSampleRecommendation()),
-                  const SizedBox(height: 10),
-                  _buildClassCard(),
-                  const SizedBox(height: 14),
-                  _buildPaginationDots(),
-                  if (_lastQuestion != null) ...[
-                    const SizedBox(height: 16),
-                    _buildUserMessage(_lastQuestion!),
-                  ],
-                  if (_previewState != ChatbotPreviewState.initial) ...[
-                    const SizedBox(height: 12),
-                    _assistantBubble(child: _buildStateContent()),
-                  ],
-                ],
-              ),
-            ),
-            _buildComposer(),
-          ],
+                ),
+                if (viewportConstraints.maxHeight >= 110) _buildComposer(),
+              ],
+            );
+          },
         ),
       ),
     );
   }
-
 
   Widget _buildConnectedScaffold(ChatbotController controller) {
     final state = controller.state;
@@ -279,21 +365,34 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
       backgroundColor: _pageBackground,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildConnectedHeader(controller),
-            Expanded(child: _buildConnectedConversation(state, controller)),
-            _buildComposer(),
-          ],
+        child: LayoutBuilder(
+          builder: (context, viewportConstraints) {
+            final showHeader = viewportConstraints.maxHeight >= 220 &&
+                viewportConstraints.maxWidth >= 200;
+            return Column(
+              children: [
+                if (showHeader) _buildConnectedHeader(controller),
+                Expanded(
+                  child: _buildConnectedConversation(
+                    state,
+                    controller,
+                    viewportWidth: viewportConstraints.maxWidth,
+                  ),
+                ),
+                if (viewportConstraints.maxHeight >= 110) _buildComposer(),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildConnectedHeader(ChatbotController controller) {
+    final isSingleMode = _isSingleConversationMode;
     return SharedAppHeader.assistant(
       title: 'Trợ lý AI Đăng ký',
-      status: widget.isSimulatedSource
+      status: _effectiveIsSimulatedSource
           ? 'Mô phỏng · Chưa kết nối Backend AI'
           : 'Trợ lý học vụ',
       avatar: const _StarAvatar(size: 44),
@@ -310,22 +409,37 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
         children: [
           IconButton(
             key: const Key('chatbot_new_conversation_button'),
-            tooltip: 'Tạo hội thoại mới',
+            tooltip: isSingleMode
+                ? 'Đặt lại đoạn hội thoại trên màn hình'
+                : 'Tạo hội thoại mới',
             visualDensity: VisualDensity.compact,
             onPressed: () {
-              controller.createNewConversation();
+              if (isSingleMode) {
+                controller.resetConversationInMemory();
+                _showNonOperationalNotice(
+                  'Đã đặt lại đoạn hội thoại trên màn hình hiện tại.',
+                );
+              } else {
+                controller.createNewConversation();
+              }
+              if (_isInlineFaqExpanded) {
+                setState(() {
+                  _isInlineFaqExpanded = false;
+                });
+              }
               _questionController.clear();
               _scrollToBottomAfterFrame();
             },
             icon: const Icon(Icons.add_comment_outlined, color: _darkText),
           ),
-          IconButton(
-            key: const Key('chatbot_conversations_button'),
-            tooltip: 'Lịch sử hội thoại',
-            visualDensity: VisualDensity.compact,
-            onPressed: () => _showConversationSheet(controller),
-            icon: const Icon(Icons.history_rounded, color: _darkText),
-          ),
+          if (!isSingleMode)
+            IconButton(
+              key: const Key('chatbot_conversations_button'),
+              tooltip: 'Lịch sử hội thoại',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _showConversationSheet(controller),
+              icon: const Icon(Icons.history_rounded, color: _darkText),
+            ),
         ],
       ),
     );
@@ -333,12 +447,17 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
 
   Widget _buildConnectedConversation(
     ChatbotState state,
-    ChatbotController controller,
-  ) {
+    ChatbotController controller, {
+    double viewportWidth = 390,
+  }) {
+    final isSingleMode = _isSingleConversationMode;
+    final leftPad = viewportWidth < 180 ? 4.0 : 8.0;
+    final rightPad = viewportWidth < 180 ? 4.0 : 20.0;
+    final assistantIndent = _adaptiveAssistantIndent(viewportWidth);
     return ListView(
       key: const Key('chatbot_conversation_list'),
       controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(8, 14, 20, 20),
+      padding: EdgeInsets.fromLTRB(leftPad, 14, rightPad, 20),
       children: [
         Center(
           child: Container(
@@ -349,6 +468,8 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
             ),
             child: const Text(
               'Hội thoại',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: _muted,
                 fontSize: 12,
@@ -358,10 +479,10 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        if (widget.isSimulatedSource) ...[
-          const Padding(
-            padding: EdgeInsets.only(left: 36, bottom: 12),
-            child: Text(
+        if (_effectiveIsSimulatedSource) ...[
+          Padding(
+            padding: EdgeInsets.only(left: assistantIndent, bottom: 12),
+            child: const Text(
               'DỮ LIỆU HỘI THOẠI MÔ PHỎNG · KHÔNG PHẢI TƯ VẤN HỌC VỤ CHÍNH THỨC',
               key: Key('chatbot_simulation_banner'),
               style: TextStyle(
@@ -392,54 +513,66 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
           ),
           const SizedBox(height: 14),
         ],
-        if (state.messagesStatus != ChatbotRequestStatus.loading &&
-            state.messages.isEmpty) ...[
-          _buildEmptyConnectedState(),
-        ],
-        if (state.isLoadingOlderMessages) ...[
-          const Center(
-            key: Key('chatbot_older_messages_loading'),
-            child: Padding(
-              padding: EdgeInsets.all(12),
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-        ] else if (state.olderMessagesError != null) ...[
-          _buildInlineError(
-            message: state.olderMessagesError!.message,
-            retryKey: const Key('chatbot_older_messages_retry_button'),
-            onRetry: controller.retryOlderMessages,
-          ),
-        ] else if (state.canLoadOlderMessages) ...[
-          Center(
-            child: OutlinedButton.icon(
-              key: const Key('chatbot_load_older_messages_button'),
-              onPressed: controller.loadOlderMessages,
-              icon: const Icon(Icons.expand_less_rounded),
-              label: const Text('Tải tin nhắn cũ hơn'),
-            ),
+        if (state.isSending && state.messages.isEmpty) ...[
+          _assistantBubble(
+            child: _buildSendingIndicatorRow(),
           ),
           const SizedBox(height: 12),
+        ],
+        if (state.messagesStatus != ChatbotRequestStatus.loading &&
+            state.messages.isEmpty) ...[
+          _buildEmptyConnectedState(controller),
+        ],
+        if (!isSingleMode) ...[
+          if (state.isLoadingOlderMessages) ...[
+            const Center(
+              key: Key('chatbot_older_messages_loading'),
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ] else if (state.olderMessagesError != null) ...[
+            _buildInlineError(
+              message: state.olderMessagesError!.message,
+              retryKey: const Key('chatbot_older_messages_retry_button'),
+              onRetry: controller.retryOlderMessages,
+            ),
+          ] else if (state.canLoadOlderMessages) ...[
+            Center(
+              child: OutlinedButton(
+                key: const Key('chatbot_load_older_messages_button'),
+                onPressed: controller.loadOlderMessages,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.expand_less_rounded, size: 18),
+                    SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Tải tin nhắn cũ hơn',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
         ],
         for (final message in state.messages) ...[
           _buildConnectedMessage(message),
           const SizedBox(height: 12),
         ],
-        if (state.isSending) ...[
+        if (state.isSending && state.messages.isNotEmpty) ...[
           _assistantBubble(
-            child: const Row(
-              key: Key('chatbot_sending_indicator'),
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 10),
-                Flexible(child: Text('Đang phản hồi...')),
-              ],
-            ),
+            child: _buildSendingIndicatorRow(),
           ),
           const SizedBox(height: 12),
         ],
@@ -455,34 +588,282 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
                 ? controller.retrySendMessage
                 : null,
           ),
+          const SizedBox(height: 12),
+        ],
+        if (state.messages.isNotEmpty) ...[
+          _buildCollapsibleFaqSection(controller),
+          const SizedBox(height: 12),
         ],
       ],
     );
   }
 
-  Widget _buildEmptyConnectedState() {
-    return Column(
-      key: const Key('chatbot_empty_state'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _assistantBubble(
-          child: const Text(
-            'Xin chào! Bạn có thể đặt câu hỏi về học phần. '
-            'Thông tin cần được xác minh với dữ liệu học vụ chính thức.',
-            style: TextStyle(fontSize: 14, height: 1.45, color: _darkText),
+  Widget _buildSendingIndicatorRow() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showSpinner = constraints.maxWidth >= 28;
+        return Row(
+          key: const Key('chatbot_sending_indicator'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showSpinner) ...[
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 10),
+            ],
+            const Flexible(
+              child: Text('Đang phản hồi · Trợ lý AI đang xử lý câu hỏi...'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyConnectedState(ChatbotController controller) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final indent = _adaptiveAssistantIndent(constraints.maxWidth);
+        return Column(
+          key: const Key('chatbot_empty_state'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _assistantBubble(
+              child: const Text(
+                'Xin chào! Bạn có thể chọn câu hỏi thường gặp bên dưới để xem hướng dẫn ngay, hoặc nhập câu hỏi riêng về học phần trong chương trình đào tạo.',
+                style: TextStyle(fontSize: 14, height: 1.45, color: _darkText),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildSuggestion(
+              icon: Icons.auto_awesome,
+              text: 'Gợi ý môn chuyên ngành cho mình',
+            ),
+            const SizedBox(height: 8),
+            _buildSuggestion(
+              icon: Icons.help_outline_rounded,
+              text: 'Tại sao mình không đăng ký được AI?',
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.only(left: indent, bottom: 8),
+              child: const Text(
+                'CÂU HỎI THƯỜNG GẶP · TRẢ LỜI NHANH',
+                key: Key('chatbot_faq_section_header'),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
+                  color: _purple,
+                ),
+              ),
+            ),
+            _buildFaqChipsList(controller),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCollapsibleFaqSection(ChatbotController controller) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final indent = _adaptiveAssistantIndent(constraints.maxWidth);
+        final showIcon = constraints.maxWidth >= 100;
+        final panelPad = constraints.maxWidth < 120 ? 4.0 : 10.0;
+        return Padding(
+          padding: EdgeInsets.only(left: indent),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton(
+                  key: const Key('chatbot_toggle_faq_button'),
+                  onPressed: () {
+                    setState(() {
+                      _isInlineFaqExpanded = !_isInlineFaqExpanded;
+                    });
+                    if (_isInlineFaqExpanded) {
+                      _scrollToBottomAfterFrame();
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _purple,
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: _purpleBorder),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: constraints.maxWidth < 120 ? 6 : 12,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (showIcon) ...[
+                        Icon(
+                          _isInlineFaqExpanded
+                              ? Icons.expand_less_rounded
+                              : Icons.quiz_outlined,
+                          size: 17,
+                          color: _purple,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Flexible(
+                        child: Text(
+                          _isInlineFaqExpanded
+                              ? 'Thu gọn câu hỏi thường gặp'
+                              : 'Xem câu hỏi thường gặp (FAQ)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_isInlineFaqExpanded) ...[
+                const SizedBox(height: 8),
+                Container(
+                  key: const Key('chatbot_inline_faq_panel'),
+                  padding: EdgeInsets.all(panelPad),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _purpleBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Chọn câu hỏi để nhận câu trả lời hướng dẫn ngay:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: _muted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFaqChipsList(controller, compactPadding: true),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
-        ),
-        const SizedBox(height: 10),
-        _buildSuggestion(
-          icon: Icons.auto_awesome,
-          text: 'Gợi ý môn chuyên ngành cho mình',
-        ),
-        const SizedBox(height: 8),
-        _buildSuggestion(
-          icon: Icons.help_outline_rounded,
-          text: 'Tại sao mình không đăng ký được AI?',
-        ),
-      ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFaqChipsList(
+    ChatbotController controller, {
+    bool compactPadding = false,
+  }) {
+    final faqs = controller.faqs;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final leftIndent = compactPadding
+            ? 0.0
+            : _adaptiveAssistantIndent(constraints.maxWidth);
+        return Padding(
+          padding: EdgeInsets.only(left: leftIndent),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < faqs.length; index++) ...[
+                if (index > 0) const SizedBox(height: 7),
+                _buildFaqChip(
+                  controller: controller,
+                  faq: faqs[index],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFaqChip({
+    required ChatbotController controller,
+    required ChatbotFaqItem faq,
+  }) {
+    final icon = switch (faq.category) {
+      ChatbotFaqCategory.overview => Icons.info_outline_rounded,
+      ChatbotFaqCategory.lookup => Icons.menu_book_outlined,
+      ChatbotFaqCategory.recommendation => Icons.route_outlined,
+    };
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showIcon = constraints.maxWidth >= 90;
+        final horizontalPad = constraints.maxWidth < 90 ? 4.0 : 12.0;
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+            child: OutlinedButton(
+              key: Key('chatbot_faq_chip_${faq.id}'),
+              onPressed: () => _selectFaq(controller, faq),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _purple,
+                backgroundColor: _purpleSoft,
+                side: const BorderSide(color: _purpleBorder),
+                alignment: Alignment.centerLeft,
+                minimumSize: Size.zero,
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPad,
+                  vertical: 9,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (showIcon) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Icon(icon, size: 16, color: _purple),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      faq.question,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(height: 1.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -568,71 +949,80 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   }
 
   Widget _buildRelatedCourseCard(ChatbotRelatedCourse course) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 36),
-      child: Container(
-        key: Key('chatbot_related_course_${course.courseCode}'),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFFE0E6EF)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              color: const Color(0xFFEDF5FF),
-              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      course.courseName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                        color: Color(0xFF075C9E),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final indent = _adaptiveAssistantIndent(constraints.maxWidth);
+        return Padding(
+          padding: EdgeInsets.only(left: indent),
+          child: Container(
+            key: Key('chatbot_related_course_${course.courseCode}'),
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFE0E6EF)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  color: const Color(0xFFEDF5FF),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          course.courseName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: Color(0xFF075C9E),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          '${course.credits} TC',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF075C9E),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${course.credits} TC',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF075C9E),
-                    ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Mã học phần: ${course.courseCode}',
+                        style: const TextStyle(fontSize: 13, color: _darkText),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        course.reason,
+                        style: const TextStyle(fontSize: 13, color: _muted),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Tra cứu thông tin chi tiết tại màn hình F03. '
+                        'Chatbot không thực hiện đăng ký học phần.',
+                        style: TextStyle(fontSize: 12, color: _muted),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 12, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mã học phần: ${course.courseCode}',
-                    style: const TextStyle(fontSize: 13, color: _darkText),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    course.reason,
-                    style: const TextStyle(fontSize: 13, color: _muted),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Tra cứu thông tin chi tiết tại màn hình F03. '
-                    'Chatbot không thực hiện đăng ký học phần.',
-                    style: TextStyle(fontSize: 12, color: _muted),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -660,11 +1050,27 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
           ],
           if (onRetry != null) ...[
             const SizedBox(height: 8),
-            TextButton.icon(
+            TextButton(
               key: retryKey,
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
+              style: TextButton.styleFrom(
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.refresh_rounded, size: 18),
+                  SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Thử lại',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -878,49 +1284,91 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   }
 
   Widget _assistantBubble({required Widget child}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: _StarAvatar(size: 28),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showAvatar = constraints.maxWidth >= 140;
+        final bubblePad = constraints.maxWidth < 80
+            ? const EdgeInsets.all(6)
+            : const EdgeInsets.fromLTRB(16, 12, 16, 14);
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showAvatar) ...[
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: _StarAvatar(size: 28),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Container(
+                padding: bubblePad,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: child,
+              ),
             ),
-            child: child,
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
   Widget _buildSuggestion({required IconData icon, required String text}) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 36),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: OutlinedButton.icon(
-          onPressed: () => _selectSuggestion(text),
-          icon: Icon(icon, size: 17, color: _purple),
-          label: Text(text, maxLines: 2),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _purple,
-            backgroundColor: _purpleSoft,
-            side: const BorderSide(color: _purpleBorder),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final indent = _adaptiveAssistantIndent(constraints.maxWidth);
+        final maxBtnWidth =
+            (constraints.maxWidth - indent).clamp(0.0, double.infinity);
+        final showIcon = maxBtnWidth >= 90;
+        final horizontalPad = maxBtnWidth < 90 ? 4.0 : 12.0;
+        return Padding(
+          padding: EdgeInsets.only(left: indent),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxBtnWidth),
+              child: OutlinedButton(
+                onPressed: () => _selectSuggestion(text),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _purple,
+                  backgroundColor: _purpleSoft,
+                  side: const BorderSide(color: _purpleBorder),
+                  alignment: Alignment.centerLeft,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPad,
+                    vertical: 9,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  textStyle: const TextStyle(fontSize: 13.5),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showIcon) ...[
+                      Icon(icon, size: 17, color: _purple),
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(
+                      child: Text(
+                        text,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            textStyle: const TextStyle(fontSize: 13.5),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -979,140 +1427,155 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   }
 
   Widget _buildClassCard() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 36),
-      child: Container(
-        key: const Key('sample_course_card'),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFFE0E6EF)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              color: const Color(0xFFEDF5FF),
-              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Lập trình Di động',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF075C9E),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCCE8FF),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      '3 TC',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        color: Color(0xFF075C9E),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final indent = _adaptiveAssistantIndent(constraints.maxWidth);
+        return Padding(
+          padding: EdgeInsets.only(left: indent),
+          child: Container(
+            key: const Key('sample_course_card'),
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFE0E6EF)),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 12, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Mã lớp: PRTE230324_01CLC',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF52647E)),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Thứ 3 · Tiết 1–3 · Phòng A1.104',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF68788D)),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCF8ED),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: const Text(
-                      '●  45/60 · Còn 15 chỗ',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: _green,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: Color(0xFFE0E6EF)),
-                  const SizedBox(height: 8),
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  color: const Color(0xFFEDF5FF),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                  child: Row(
                     children: [
                       const Expanded(
                         child: Text(
-                          'Kiểm tra điều kiện khi đăng ký',
-                          style: TextStyle(fontSize: 12, color: _muted),
+                          'Lập trình Di động',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF075C9E),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      SizedBox(
-                        height: 35,
-                        child: FilledButton(
-                          key: const Key('sample_register_button'),
-                          onPressed: () => _showNonOperationalNotice(
-                            'Dữ liệu minh họa. Chatbot không đăng ký học phần; '
-                            'hãy dùng màn hình Đăng ký học phần chính thức.',
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF16A34A),
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFCCE8FF),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
-                            'Đăng ký',
-                            style: TextStyle(fontWeight: FontWeight.w800),
+                            '3 TC',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                              color: Color(0xFF075C9E),
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Mã lớp: PRTE230324_01CLC',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF52647E)),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Thứ 3 · Tiết 1–3 · Phòng A1.104',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF68788D)),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCF8ED),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: const Text(
+                          '●  45/60 · Còn 15 chỗ',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: _green,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Divider(height: 1, color: Color(0xFFE0E6EF)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Kiểm tra điều kiện khi đăng ký',
+                              style: TextStyle(fontSize: 12, color: _muted),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: SizedBox(
+                              height: 35,
+                              child: FilledButton(
+                                key: const Key('sample_register_button'),
+                                onPressed: () => _showNonOperationalNotice(
+                                  'Dữ liệu minh họa. Chatbot không đăng ký học phần; '
+                                  'hãy dùng màn hình Đăng ký học phần chính thức.',
+                                ),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A34A),
+                                  minimumSize: Size.zero,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 15,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Đăng ký',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildPaginationDots() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 5,
       children: const [
         _PagerDot(active: true),
-        SizedBox(width: 5),
         _PagerDot(active: false),
-        SizedBox(width: 5),
         _PagerDot(active: false),
       ],
     );
@@ -1180,73 +1643,98 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
     final state = _controller?.state;
     final isBusy = state?.isSending == true ||
         state?.messagesStatus == ChatbotRequestStatus.loading;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 12, 18, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE0E6EF))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              key: const Key('chatbot_question_input'),
-              controller: _questionController,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _sendQuestion(),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: _pageBackground,
-                hintText: 'Nhập câu hỏi cho AI...',
-                hintStyle: const TextStyle(color: Color(0xFF9AA8BA)),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(32),
-                  borderSide: const BorderSide(color: Color(0xFFE0E6EF)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(32),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-                suffixIcon: IconButton(
-                  tooltip: 'Đính kèm (chưa hỗ trợ)',
-                  onPressed: () => _showNonOperationalNotice(
-                    'Chức năng đính kèm chưa được triển khai.',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isUltraNarrow = constraints.maxWidth < 180;
+        if (constraints.maxWidth < 70) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          padding: EdgeInsets.fromLTRB(
+            isUltraNarrow ? 4 : 15,
+            12,
+            isUltraNarrow ? 4 : 18,
+            12,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFE0E6EF))),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('chatbot_question_input'),
+                  controller: _questionController,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _sendQuestion(),
+                  decoration: InputDecoration(
+                    isDense: isUltraNarrow,
+                    filled: true,
+                    fillColor: _pageBackground,
+                    hintText: 'Nhập câu hỏi cho AI...',
+                    hintStyle: const TextStyle(color: Color(0xFF9AA8BA)),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: isUltraNarrow ? 8 : 16,
+                      vertical: 14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      borderSide: const BorderSide(color: Color(0xFFE0E6EF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                    suffixIcon: isUltraNarrow
+                        ? null
+                        : IconButton(
+                            tooltip: 'Đính kèm (chưa hỗ trợ)',
+                            onPressed: () => _showNonOperationalNotice(
+                              'Chức năng đính kèm chưa được triển khai.',
+                            ),
+                            icon: const Icon(
+                              Icons.attach_file_rounded,
+                              color: _muted,
+                            ),
+                          ),
                   ),
-                  icon: const Icon(Icons.attach_file_rounded, color: _muted),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 46,
-            height: 46,
-            child: IconButton.filled(
-              key: const Key('chatbot_send_button'),
-              tooltip: 'Gửi câu hỏi',
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+              SizedBox(width: isUltraNarrow ? 4 : 8),
+              SizedBox(
+                width: isUltraNarrow ? 36 : 46,
+                height: isUltraNarrow ? 36 : 46,
+                child: IconButton.filled(
+                  key: const Key('chatbot_send_button'),
+                  tooltip: 'Gửi câu hỏi',
+                  padding: EdgeInsets.zero,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: isBusy ? null : _sendQuestion,
+                  icon: state?.isSending == true
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          Icons.arrow_forward_rounded,
+                          size: isUltraNarrow ? 18 : 26,
+                        ),
+                ),
               ),
-              onPressed: isBusy ? null : _sendQuestion,
-              icon: state?.isSending == true
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.arrow_forward_rounded, size: 26),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
