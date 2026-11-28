@@ -8,17 +8,32 @@ import 'school_account_provisioner.dart';
 /// Run only from a local post-migration initializer.
 class DevSeedAccounts {
   static Future<void> run(Session session) async {
-    if (Platform.environment['APP_ENV'] != 'development' ||
-        Platform.environment['ALLOW_DEV_SEED'] != 'true') {
+    if (Platform.environment['APP_ENV']?.trim().toLowerCase() !=
+            'development' ||
+        Platform.environment['ALLOW_DEV_SEED']?.trim().toLowerCase() !=
+            'true') {
       return;
     }
 
-    String secret(String key) {
-      final value = Platform.environment[key];
-      if (value == null || value.isEmpty) {
-        throw StateError('Chưa cấu hình biến môi trường $key.');
+    ({String email, String password})? credentials(
+      String emailKey,
+      String passwordKey,
+    ) {
+      final email = Platform.environment[emailKey]?.trim() ?? '';
+      final password = Platform.environment[passwordKey] ?? '';
+      if (email.isEmpty && password.isEmpty) {
+        stdout.writeln(
+          '[DEV ACCOUNT SEED] Skipped $emailKey/$passwordKey because both '
+          'values are empty.',
+        );
+        return null;
       }
-      return value;
+      if (email.isEmpty || password.isEmpty) {
+        throw StateError(
+          'Phải cấu hình đồng thời $emailKey và $passwordKey.',
+        );
+      }
+      return (email: email, password: password);
     }
 
     final curriculum =
@@ -32,7 +47,7 @@ class DevSeedAccounts {
             code: 'DEV-CNTT',
             name: 'Chương trình thử nghiệm - KHÔNG CHÍNH THỨC',
             majorCode: 'DEV',
-            status: 'DEMO',
+            status: 'ACTIVE',
           ),
         );
     final version =
@@ -48,7 +63,8 @@ class DevSeedAccounts {
             curriculumId: curriculum.id!,
             versionCode: 'DEV-2026',
             effectiveYear: 2026,
-            status: 'DEMO',
+            status: 'PUBLISHED',
+            publishedAt: DateTime.now().toUtc(),
           ),
         );
 
@@ -59,6 +75,7 @@ class DevSeedAccounts {
       String? studentCode,
       int? curriculumVersionId,
       String? lecturerCode,
+      int? admissionYear,
     }) async {
       final existing = await UserAccount.db.findFirstRow(
         session,
@@ -73,26 +90,42 @@ class DevSeedAccounts {
         studentCode: studentCode,
         curriculumVersionId: curriculumVersionId,
         lecturerCode: lecturerCode,
+        admissionYear: admissionYear,
       );
     }
 
-    await createIfAbsent(
-      email: secret('SEED_ADMIN_EMAIL'),
-      password: secret('SEED_ADMIN_PASSWORD'),
-      role: AccountRole.admin,
+    final admin = credentials('SEED_ADMIN_EMAIL', 'SEED_ADMIN_PASSWORD');
+    if (admin != null) {
+      await createIfAbsent(
+        email: admin.email,
+        password: admin.password,
+        role: AccountRole.admin,
+      );
+    }
+
+    final lecturer = credentials(
+      'SEED_LECTURER_EMAIL',
+      'SEED_LECTURER_PASSWORD',
     );
-    await createIfAbsent(
-      email: secret('SEED_LECTURER_EMAIL'),
-      password: secret('SEED_LECTURER_PASSWORD'),
-      role: AccountRole.lecturer,
-      lecturerCode: 'DEV-GV001',
-    );
-    await createIfAbsent(
-      email: secret('SEED_STUDENT_EMAIL'),
-      password: secret('SEED_STUDENT_PASSWORD'),
-      role: AccountRole.student,
-      studentCode: 'DEV-SV001',
-      curriculumVersionId: version.id!,
-    );
+    if (lecturer != null) {
+      await createIfAbsent(
+        email: lecturer.email,
+        password: lecturer.password,
+        role: AccountRole.lecturer,
+        lecturerCode: 'DEV-GV001',
+      );
+    }
+
+    final student = credentials('SEED_STUDENT_EMAIL', 'SEED_STUDENT_PASSWORD');
+    if (student != null) {
+      await createIfAbsent(
+        email: student.email,
+        password: student.password,
+        role: AccountRole.student,
+        studentCode: 'DEV-SV001',
+        curriculumVersionId: version.id!,
+        admissionYear: 2026,
+      );
+    }
   }
 }

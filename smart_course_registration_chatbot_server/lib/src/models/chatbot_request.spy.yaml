@@ -1,0 +1,17 @@
+class: ChatbotRequest
+table: app_chatbot_request
+serverOnly: true
+
+fields:
+  studentId: int, relation(parent=app_student, onDelete=Cascade)
+  conversationId: int, relation(parent=app_chatbot_conversation, onDelete=Cascade)
+  clientRequestId: String
+  requestedConversationId: int?
+  question: String
+  answer: String
+  createdAt: DateTime
+
+indexes:
+  chatbot_request_student_request_idx:
+    fields: studentId, clientRequestId
+    unique: true

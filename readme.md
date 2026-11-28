@@ -159,11 +159,35 @@ Không sửa tay các file dưới `lib/src/generated/`. Chỉ chạy `serverpod
 dart run bin/main.dart --mode development --role maintenance --apply-migrations
 ```
 
-Sau đó chạy backend:
+Để tạo tài khoản, sinh viên, giảng viên, học kỳ và lớp học phần mẫu, cấu hình
+các biến seed trong **chính cửa sổ PowerShell chạy backend**. File `.env` của
+Docker Compose không tự nạp các biến này vào tiến trình Dart:
+
+```powershell
+$env:APP_ENV = 'development'
+$env:ALLOW_DEV_SEED = 'true'
+$env:SEED_ADMIN_EMAIL = 'admin@your-school.example.edu'
+$env:SEED_ADMIN_PASSWORD = '<mat-khau-dev-toi-thieu-16-ky-tu>'
+$env:SEED_LECTURER_EMAIL = 'lecturer@your-school.example.edu'
+$env:SEED_LECTURER_PASSWORD = '<mat-khau-dev-toi-thieu-16-ky-tu>'
+$env:SEED_STUDENT_EMAIL = 'student@your-school.example.edu'
+$env:SEED_STUDENT_PASSWORD = '<mat-khau-dev-toi-thieu-16-ky-tu>'
+$env:SEED_K26_CURRICULA = 'true'
+```
+
+`SEED_K26_CURRICULA=true` tạo các CTĐT K26 ở trạng thái `DRAFT`. Bộ RAG mở
+rộng chỉ dành cho database DEV cô lập; xem các biến `SEED_RAG_*` trong
+`smart_course_registration_chatbot_server/.env.example`.
+
+Sau đó chạy backend trong cùng cửa sổ:
 
 ```powershell
 dart run bin/main.dart --mode development
 ```
+
+Seed có thể chạy lại: nó bổ sung hoặc đồng bộ các bản ghi mang mã `DEV-*`,
+không xóa dữ liệu ứng dụng. Nếu thêm dữ liệu mẫu mới vào source, lần khởi động
+tiếp theo sẽ nạp phần còn thiếu kể cả khi bảng môn học đã có dữ liệu.
 
 Giữ Terminal này mở. Nếu hiện `database ... does not exist`, hãy đối chiếu lại **đúng tên có dấu `-`** giữa PostgreSQL và `config/development.yaml`.
 

@@ -8,6 +8,10 @@ fields:
   curriculumVersionId: int, relation(parent=app_curriculum_version)
   academicStatus: String
 
+  ### F07 - Nam nhap hoc. Dung de tu dong chon phien ban CTDT theo nam
+  ### hieu luc (hoc che tin chi). Nullable de tuong thich du lieu cu.
+  admissionYear: int?
+
 indexes:
   app_student_account_unique:
     fields: userAccountId

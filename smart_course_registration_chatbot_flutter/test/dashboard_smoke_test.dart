@@ -2,10 +2,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_course_registration_chatbot_flutter/features/admin/admin_dashboard.dart';
 import 'package:smart_course_registration_chatbot_flutter/features/lecturer/lecturer_dashboard.dart';
 import 'package:smart_course_registration_chatbot_flutter/features/student/student_dashboard.dart';
+import 'package:smart_course_registration_chatbot_flutter/features/recommendation/data/recommendation_repository.dart';
+import 'package:smart_course_registration_chatbot_flutter/features/recommendation/recommendation_repository_scope.dart';
+import 'package:smart_course_registration_chatbot_flutter/features/recommendation/recommendation_screen.dart';
 
 import 'package:flutter/material.dart';
 
 import 'package:smart_course_registration_chatbot_flutter/dev/week5_dashboard_preview.dart';
+
+class _DashboardRecommendationRepository implements RecommendationRepository {
+  int calls = 0;
+
+  @override
+  Future<RecommendationOverview?> getOverview() async {
+    calls++;
+    return const RecommendationOverview(
+      hasCurriculum: true,
+      hasProgress: true,
+      courses: [],
+    );
+  }
+}
 
 void main() {
   testWidgets('Student dashboard renders academic profile and GPA', (
@@ -21,6 +38,24 @@ void main() {
     expect(find.text('GPA tích lũy'), findsOneWidget);
     expect(find.text('3.42'), findsOneWidget);
     expect(find.text('Tiến độ chương trình đào tạo'), findsOneWidget);
+  });
+
+  testWidgets('Student dashboard mở được quick access F24/F27 qua scope', (
+    tester,
+  ) async {
+    final repository = _DashboardRecommendationRepository();
+    await tester.pumpWidget(
+      RecommendationRepositoryScope(
+        repository: repository,
+        child: const MaterialApp(home: StudentDashboard()),
+      ),
+    );
+    await tester.ensureVisible(find.text('Lộ trình học tập'));
+    await tester.tap(find.text('Lộ trình học tập'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RecommendationScreen), findsOneWidget);
+    expect(repository.calls, 1);
   });
 
   testWidgets('Lecturer dashboard renders class statistics and schedule', (

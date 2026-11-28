@@ -1,0 +1,13 @@
+class: ChatbotConversation
+table: app_chatbot_conversation
+serverOnly: true
+
+fields:
+  studentId: int, relation(parent=app_student, onDelete=Cascade)
+  title: String
+  createdAt: DateTime
+  updatedAt: DateTime
+
+indexes:
+  chatbot_conversation_student_updated_idx:
+    fields: studentId, updatedAt

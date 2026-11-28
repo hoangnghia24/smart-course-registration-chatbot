@@ -17,17 +17,15 @@ import '../endpoints/account_endpoint.dart' as _i3;
 import '../endpoints/admin_account_endpoint.dart' as _i4;
 import '../endpoints/chatbot_endpoint.dart' as _i5;
 import '../endpoints/course_endpoint.dart' as _i6;
-import '../endpoints/email_idp_endpoint.dart' as _i7;
-import '../endpoints/google_idp_endpoint.dart' as _i8;
-import '../endpoints/jwt_refresh_endpoint.dart' as _i9;
-import '../endpoints/student_endpoint.dart' as _i10;
-import '../greetings/greeting_endpoint.dart' as _i11;
+import '../endpoints/curriculum_admin_endpoint.dart' as _i7;
+import '../endpoints/email_idp_endpoint.dart' as _i8;
+import '../endpoints/student_endpoint.dart' as _i9;
 import 'package:smart_course_registration_chatbot_server/src/generated/course_dto.dart'
-    as _i12;
+    as _i10;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i13;
+    as _i11;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i14;
+    as _i12;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -63,34 +61,22 @@ class Endpoints extends _i1.EndpointDispatch {
           'course',
           null,
         ),
-      'emailIdp': _i7.EmailIdpEndpoint()
+      'curriculumAdmin': _i7.CurriculumAdminEndpoint()
+        ..initialize(
+          server,
+          'curriculumAdmin',
+          null,
+        ),
+      'emailIdp': _i8.EmailIdpEndpoint()
         ..initialize(
           server,
           'emailIdp',
           null,
         ),
-      'googleIdp': _i8.GoogleIdpEndpoint()
-        ..initialize(
-          server,
-          'googleIdp',
-          null,
-        ),
-      'jwtRefresh': _i9.JwtRefreshEndpoint()
-        ..initialize(
-          server,
-          'jwtRefresh',
-          null,
-        ),
-      'student': _i10.StudentEndpoint()
+      'student': _i9.StudentEndpoint()
         ..initialize(
           server,
           'student',
-          null,
-        ),
-      'greeting': _i11.GreetingEndpoint()
-        ..initialize(
-          server,
-          'greeting',
           null,
         ),
     };
@@ -189,6 +175,16 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'conversationId': _i1.ParameterDescription(
+              name: 'conversationId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
+            'clientRequestId': _i1.ParameterDescription(
+              name: 'clientRequestId',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
           },
           call:
               (
@@ -198,6 +194,8 @@ class Endpoints extends _i1.EndpointDispatch {
                   (endpoints['chatbot'] as _i5.ChatbotEndpoint).sendMessage(
                     session,
                     params['message'],
+                    params['conversationId'],
+                    params['clientRequestId'],
                   ),
         ),
       },
@@ -236,7 +234,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i12.CourseDto>(),
+              type: _i1.getType<_i10.CourseDto>(),
               nullable: false,
             ),
           },
@@ -255,7 +253,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'courseDto': _i1.ParameterDescription(
               name: 'courseDto',
-              type: _i1.getType<_i12.CourseDto>(),
+              type: _i1.getType<_i10.CourseDto>(),
               nullable: false,
             ),
           },
@@ -340,6 +338,98 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['curriculumAdmin'] = _i1.EndpointConnector(
+      name: 'curriculumAdmin',
+      endpoint: endpoints['curriculumAdmin']!,
+      methodConnectors: {
+        'listCurriculums': _i1.MethodConnector(
+          name: 'listCurriculums',
+          params: {
+            'query': _i1.ParameterDescription(
+              name: 'query',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
+                      .listCurriculums(
+                        session,
+                        params['query'],
+                      ),
+        ),
+        'getVersion': _i1.MethodConnector(
+          name: 'getVersion',
+          params: {
+            'versionId': _i1.ParameterDescription(
+              name: 'versionId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
+                      .getVersion(
+                        session,
+                        params['versionId'],
+                      ),
+        ),
+        'previewVersionForAdmission': _i1.MethodConnector(
+          name: 'previewVersionForAdmission',
+          params: {
+            'curriculumCode': _i1.ParameterDescription(
+              name: 'curriculumCode',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'admissionYear': _i1.ParameterDescription(
+              name: 'admissionYear',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
+                      .previewVersionForAdmission(
+                        session,
+                        params['curriculumCode'],
+                        params['admissionYear'],
+                      ),
+        ),
+        'getStudentAssignment': _i1.MethodConnector(
+          name: 'getStudentAssignment',
+          params: {
+            'studentCode': _i1.ParameterDescription(
+              name: 'studentCode',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['curriculumAdmin'] as _i7.CurriculumAdminEndpoint)
+                      .getStudentAssignment(
+                        session,
+                        params['studentCode'],
+                      ),
+        ),
+      },
+    );
     connectors['emailIdp'] = _i1.EndpointConnector(
       name: 'emailIdp',
       endpoint: endpoints['emailIdp']!,
@@ -362,7 +452,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint).login(
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint).login(
                 session,
                 email: params['email'],
                 password: params['password'],
@@ -381,7 +471,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint)
                   .startRegistration(
                     session,
                     email: params['email'],
@@ -405,7 +495,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint)
                   .verifyRegistrationCode(
                     session,
                     accountRequestId: params['accountRequestId'],
@@ -430,7 +520,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint)
                   .finishRegistration(
                     session,
                     registrationToken: params['registrationToken'],
@@ -450,7 +540,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint)
                   .startPasswordReset(
                     session,
                     email: params['email'],
@@ -474,7 +564,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint)
                   .verifyPasswordResetCode(
                     session,
                     passwordResetRequestId: params['passwordResetRequestId'],
@@ -499,7 +589,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint)
                   .finishPasswordReset(
                     session,
                     finishPasswordResetToken:
@@ -514,74 +604,8 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i7.EmailIdpEndpoint)
+              ) async => (endpoints['emailIdp'] as _i8.EmailIdpEndpoint)
                   .hasAccount(session),
-        ),
-      },
-    );
-    connectors['googleIdp'] = _i1.EndpointConnector(
-      name: 'googleIdp',
-      endpoint: endpoints['googleIdp']!,
-      methodConnectors: {
-        'login': _i1.MethodConnector(
-          name: 'login',
-          params: {
-            'idToken': _i1.ParameterDescription(
-              name: 'idToken',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'accessToken': _i1.ParameterDescription(
-              name: 'accessToken',
-              type: _i1.getType<String?>(),
-              nullable: true,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['googleIdp'] as _i8.GoogleIdpEndpoint).login(
-                    session,
-                    idToken: params['idToken'],
-                    accessToken: params['accessToken'],
-                  ),
-        ),
-        'hasAccount': _i1.MethodConnector(
-          name: 'hasAccount',
-          params: {},
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['googleIdp'] as _i8.GoogleIdpEndpoint)
-                  .hasAccount(session),
-        ),
-      },
-    );
-    connectors['jwtRefresh'] = _i1.EndpointConnector(
-      name: 'jwtRefresh',
-      endpoint: endpoints['jwtRefresh']!,
-      methodConnectors: {
-        'refreshAccessToken': _i1.MethodConnector(
-          name: 'refreshAccessToken',
-          params: {
-            'refreshToken': _i1.ParameterDescription(
-              name: 'refreshToken',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['jwtRefresh'] as _i9.JwtRefreshEndpoint)
-                  .refreshAccessToken(
-                    session,
-                    refreshToken: params['refreshToken'],
-                  ),
         ),
       },
     );
@@ -596,38 +620,14 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['student'] as _i10.StudentEndpoint)
+              ) async => (endpoints['student'] as _i9.StudentEndpoint)
                   .getMyCurriculum(session),
         ),
       },
     );
-    connectors['greeting'] = _i1.EndpointConnector(
-      name: 'greeting',
-      endpoint: endpoints['greeting']!,
-      methodConnectors: {
-        'hello': _i1.MethodConnector(
-          name: 'hello',
-          params: {
-            'name': _i1.ParameterDescription(
-              name: 'name',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i11.GreetingEndpoint).hello(
-                session,
-                params['name'],
-              ),
-        ),
-      },
-    );
-    modules['serverpod_auth_idp'] = _i13.Endpoints()
+    modules['serverpod_auth_idp'] = _i11.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i14.Endpoints()
+    modules['serverpod_auth_core'] = _i12.Endpoints()
       ..initializeEndpoints(server);
   }
 }

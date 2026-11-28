@@ -1,0 +1,10 @@
+### F07 - CTDT trong man hinh quan tri
+class: AdminCurriculumDto
+fields:
+  id: int
+  code: String
+  name: String
+  majorCode: String
+  ### ACTIVE, INACTIVE
+  status: String
+  versions: List<AdminCurriculumVersionSummaryDto>

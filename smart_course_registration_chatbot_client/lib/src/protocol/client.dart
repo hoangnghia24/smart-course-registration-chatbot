@@ -17,17 +17,25 @@ import 'package:smart_course_registration_chatbot_client/src/protocol/academic_p
     as _i3;
 import 'package:smart_course_registration_chatbot_client/src/protocol/current_user_dto.dart'
     as _i4;
-import 'package:smart_course_registration_chatbot_client/src/protocol/course_dto.dart'
+import 'package:smart_course_registration_chatbot_client/src/protocol/chatbot_reply_dto.dart'
     as _i5;
-import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
+import 'package:smart_course_registration_chatbot_client/src/protocol/course_dto.dart'
     as _i6;
-import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+import 'package:smart_course_registration_chatbot_client/src/protocol/admin_curriculum_dto.dart'
     as _i7;
-import 'package:smart_course_registration_chatbot_client/src/protocol/curriculum_details_dto.dart'
+import 'package:smart_course_registration_chatbot_client/src/protocol/admin_curriculum_version_detail_dto.dart'
     as _i8;
-import 'package:smart_course_registration_chatbot_client/src/protocol/greetings/greeting.dart'
+import 'package:smart_course_registration_chatbot_client/src/protocol/admin_curriculum_version_summary_dto.dart'
     as _i9;
-import 'protocol.dart' as _i10;
+import 'package:smart_course_registration_chatbot_client/src/protocol/student_curriculum_assignment_dto.dart'
+    as _i10;
+import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
+    as _i11;
+import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+    as _i12;
+import 'package:smart_course_registration_chatbot_client/src/protocol/curriculum_details_dto.dart'
+    as _i13;
+import 'protocol.dart' as _i14;
 
 /// {@category Endpoint}
 class EndpointAcademic extends _i1.EndpointRef {
@@ -108,13 +116,20 @@ class EndpointChatbot extends _i1.EndpointRef {
   @override
   String get name => 'chatbot';
 
-  /// Hàm để sinh viên gửi câu hỏi
-  _i2.Future<String> sendMessage(String message) =>
-      caller.callServerEndpoint<String>(
-        'chatbot',
-        'sendMessage',
-        {'message': message},
-      );
+  /// Hàm để sinh viên gửi câu hỏi.
+  _i2.Future<_i5.ChatbotReplyDto> sendMessage(
+    String message,
+    int? conversationId,
+    String clientRequestId,
+  ) => caller.callServerEndpoint<_i5.ChatbotReplyDto>(
+    'chatbot',
+    'sendMessage',
+    {
+      'message': message,
+      'conversationId': conversationId,
+      'clientRequestId': clientRequestId,
+    },
+  );
 }
 
 /// {@category Endpoint}
@@ -124,10 +139,10 @@ class EndpointCourse extends _i1.EndpointRef {
   @override
   String get name => 'course';
 
-  _i2.Future<List<_i5.CourseDto>> getCoursesPage(
+  _i2.Future<List<_i6.CourseDto>> getCoursesPage(
     int page,
     int pageSize,
-  ) => caller.callServerEndpoint<List<_i5.CourseDto>>(
+  ) => caller.callServerEndpoint<List<_i6.CourseDto>>(
     'course',
     'getCoursesPage',
     {
@@ -136,16 +151,16 @@ class EndpointCourse extends _i1.EndpointRef {
     },
   );
 
-  _i2.Future<_i5.CourseDto> createCourse(_i5.CourseDto courseDto) =>
-      caller.callServerEndpoint<_i5.CourseDto>(
+  _i2.Future<_i6.CourseDto> createCourse(_i6.CourseDto courseDto) =>
+      caller.callServerEndpoint<_i6.CourseDto>(
         'course',
         'createCourse',
         {'courseDto': courseDto},
       );
 
   /// Cập nhật thông tin môn học.
-  _i2.Future<_i5.CourseDto> updateCourse(_i5.CourseDto courseDto) =>
-      caller.callServerEndpoint<_i5.CourseDto>(
+  _i2.Future<_i6.CourseDto> updateCourse(_i6.CourseDto courseDto) =>
+      caller.callServerEndpoint<_i6.CourseDto>(
         'course',
         'updateCourse',
         {'courseDto': courseDto},
@@ -161,11 +176,11 @@ class EndpointCourse extends _i1.EndpointRef {
   /// Tìm kiếm môn học có phân trang.
   /// Admin: Xem tất cả môn học.
   /// Student, Lecturer: Chỉ xem môn học đang hoạt động.
-  _i2.Future<List<_i5.CourseDto>> searchCourses(
+  _i2.Future<List<_i6.CourseDto>> searchCourses(
     String query,
     int page,
     int pageSize,
-  ) => caller.callServerEndpoint<List<_i5.CourseDto>>(
+  ) => caller.callServerEndpoint<List<_i6.CourseDto>>(
     'course',
     'searchCourses',
     {
@@ -175,19 +190,65 @@ class EndpointCourse extends _i1.EndpointRef {
     },
   );
 
-  _i2.Future<_i5.CourseDto> getCourseById(int courseId) =>
-      caller.callServerEndpoint<_i5.CourseDto>(
+  _i2.Future<_i6.CourseDto> getCourseById(int courseId) =>
+      caller.callServerEndpoint<_i6.CourseDto>(
         'course',
         'getCourseById',
         {'courseId': courseId},
       );
 }
 
+/// API Admin CTDT chi doc. Khong cung cap cac ham tao/sua/xoa/gan CTDT.
+/// CHU Y: thay the endpoint cu va chay serverpod generate.
+/// {@category Endpoint}
+class EndpointCurriculumAdmin extends _i1.EndpointRef {
+  EndpointCurriculumAdmin(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'curriculumAdmin';
+
+  _i2.Future<List<_i7.AdminCurriculumDto>> listCurriculums(String query) =>
+      caller.callServerEndpoint<List<_i7.AdminCurriculumDto>>(
+        'curriculumAdmin',
+        'listCurriculums',
+        {'query': query},
+      );
+
+  _i2.Future<_i8.AdminCurriculumVersionDetailDto> getVersion(int versionId) =>
+      caller.callServerEndpoint<_i8.AdminCurriculumVersionDetailDto>(
+        'curriculumAdmin',
+        'getVersion',
+        {'versionId': versionId},
+      );
+
+  /// Chi xem phien ban phu hop theo khoa, khong thuc hien gan.
+  _i2.Future<_i9.AdminCurriculumVersionSummaryDto?> previewVersionForAdmission(
+    String curriculumCode,
+    int admissionYear,
+  ) => caller.callServerEndpoint<_i9.AdminCurriculumVersionSummaryDto?>(
+    'curriculumAdmin',
+    'previewVersionForAdmission',
+    {
+      'curriculumCode': curriculumCode,
+      'admissionYear': admissionYear,
+    },
+  );
+
+  /// Chi xem phien ban dang gan cho sinh vien.
+  _i2.Future<_i10.StudentCurriculumAssignmentDto> getStudentAssignment(
+    String studentCode,
+  ) => caller.callServerEndpoint<_i10.StudentCurriculumAssignmentDto>(
+    'curriculumAdmin',
+    'getStudentAssignment',
+    {'studentCode': studentCode},
+  );
+}
+
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
 /// on the client.
 /// {@category Endpoint}
-class EndpointEmailIdp extends _i6.EndpointEmailIdpBase {
+class EndpointEmailIdp extends _i11.EndpointEmailIdpBase {
   EndpointEmailIdp(_i1.EndpointCaller caller) : super(caller);
 
   @override
@@ -203,10 +264,10 @@ class EndpointEmailIdp extends _i6.EndpointEmailIdpBase {
   ///
   /// Throws an [AuthUserBlockedException] if the auth user is blocked.
   @override
-  _i2.Future<_i7.AuthSuccess> login({
+  _i2.Future<_i12.AuthSuccess> login({
     required String email,
     required String password,
-  }) => caller.callServerEndpoint<_i7.AuthSuccess>(
+  }) => caller.callServerEndpoint<_i12.AuthSuccess>(
     'emailIdp',
     'login',
     {
@@ -271,10 +332,10 @@ class EndpointEmailIdp extends _i6.EndpointEmailIdpBase {
   ///
   /// Returns a session for the newly created user.
   @override
-  _i2.Future<_i7.AuthSuccess> finishRegistration({
+  _i2.Future<_i12.AuthSuccess> finishRegistration({
     required String registrationToken,
     required String password,
-  }) => caller.callServerEndpoint<_i7.AuthSuccess>(
+  }) => caller.callServerEndpoint<_i12.AuthSuccess>(
     'emailIdp',
     'finishRegistration',
     {
@@ -366,76 +427,7 @@ class EndpointEmailIdp extends _i6.EndpointEmailIdpBase {
   );
 }
 
-/// {@category Endpoint}
-class EndpointGoogleIdp extends _i6.EndpointGoogleIdpBase {
-  EndpointGoogleIdp(_i1.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'googleIdp';
-
-  /// Validates a Google ID token and either logs in the associated user or
-  /// creates a new user account if the Google account ID is not yet known.
-  ///
-  /// If a new user is created an associated [UserProfile] is also created.
-  @override
-  _i2.Future<_i7.AuthSuccess> login({
-    required String idToken,
-    required String? accessToken,
-  }) => caller.callServerEndpoint<_i7.AuthSuccess>(
-    'googleIdp',
-    'login',
-    {
-      'idToken': idToken,
-      'accessToken': accessToken,
-    },
-  );
-
-  @override
-  _i2.Future<bool> hasAccount() => caller.callServerEndpoint<bool>(
-    'googleIdp',
-    'hasAccount',
-    {},
-  );
-}
-
-/// By extending [RefreshJwtTokensEndpoint], the JWT token refresh endpoint
-/// is made available on the server and enables automatic token refresh on the client.
-/// {@category Endpoint}
-class EndpointJwtRefresh extends _i7.EndpointRefreshJwtTokens {
-  EndpointJwtRefresh(_i1.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'jwtRefresh';
-
-  /// Creates a new token pair for the given [refreshToken].
-  ///
-  /// Can throw the following exceptions:
-  /// -[RefreshTokenMalformedException]: refresh token is malformed and could
-  ///   not be parsed. Not expected to happen for tokens issued by the server.
-  /// -[RefreshTokenNotFoundException]: refresh token is unknown to the server.
-  ///   Either the token was deleted or generated by a different server.
-  /// -[RefreshTokenExpiredException]: refresh token has expired. Will happen
-  ///   only if it has not been used within configured `refreshTokenLifetime`.
-  /// -[RefreshTokenInvalidSecretException]: refresh token is incorrect, meaning
-  ///   it does not refer to the current secret refresh token. This indicates
-  ///   either a malfunctioning client or a malicious attempt by someone who has
-  ///   obtained the refresh token. In this case the underlying refresh token
-  ///   will be deleted, and access to it will expire fully when the last access
-  ///   token is elapsed.
-  ///
-  /// This endpoint is unauthenticated, meaning the client won't include any
-  /// authentication information with the call.
-  @override
-  _i2.Future<_i7.AuthSuccess> refreshAccessToken({
-    required String refreshToken,
-  }) => caller.callServerEndpoint<_i7.AuthSuccess>(
-    'jwtRefresh',
-    'refreshAccessToken',
-    {'refreshToken': refreshToken},
-    authenticated: false,
-  );
-}
-
+/// Chi sinh vien duoc doc CTDT dang duoc gan cho tai khoan cua minh.
 /// {@category Endpoint}
 class EndpointStudent extends _i1.EndpointRef {
   EndpointStudent(_i1.EndpointCaller caller) : super(caller);
@@ -443,41 +435,23 @@ class EndpointStudent extends _i1.EndpointRef {
   @override
   String get name => 'student';
 
-  _i2.Future<_i8.CurriculumDetailsDto?> getMyCurriculum() =>
-      caller.callServerEndpoint<_i8.CurriculumDetailsDto?>(
+  _i2.Future<_i13.CurriculumDetailsDto?> getMyCurriculum() =>
+      caller.callServerEndpoint<_i13.CurriculumDetailsDto?>(
         'student',
         'getMyCurriculum',
         {},
       );
 }
 
-/// This is an example endpoint that returns a greeting message through
-/// its [hello] method.
-/// {@category Endpoint}
-class EndpointGreeting extends _i1.EndpointRef {
-  EndpointGreeting(_i1.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'greeting';
-
-  /// Returns a personalized greeting message: "Hello {name}".
-  _i2.Future<_i9.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i9.Greeting>(
-        'greeting',
-        'hello',
-        {'name': name},
-      );
-}
-
 class Modules {
   Modules(Client client) {
-    serverpod_auth_idp = _i6.Caller(client);
-    serverpod_auth_core = _i7.Caller(client);
+    serverpod_auth_idp = _i11.Caller(client);
+    serverpod_auth_core = _i12.Caller(client);
   }
 
-  late final _i6.Caller serverpod_auth_idp;
+  late final _i11.Caller serverpod_auth_idp;
 
-  late final _i7.Caller serverpod_auth_core;
+  late final _i12.Caller serverpod_auth_core;
 }
 
 class Client extends _i1.ServerpodClientShared {
@@ -500,7 +474,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i10.Protocol(),
+         _i14.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -514,11 +488,9 @@ class Client extends _i1.ServerpodClientShared {
     adminAccount = EndpointAdminAccount(this);
     chatbot = EndpointChatbot(this);
     course = EndpointCourse(this);
+    curriculumAdmin = EndpointCurriculumAdmin(this);
     emailIdp = EndpointEmailIdp(this);
-    googleIdp = EndpointGoogleIdp(this);
-    jwtRefresh = EndpointJwtRefresh(this);
     student = EndpointStudent(this);
-    greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
 
@@ -532,15 +504,11 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointCourse course;
 
+  late final EndpointCurriculumAdmin curriculumAdmin;
+
   late final EndpointEmailIdp emailIdp;
 
-  late final EndpointGoogleIdp googleIdp;
-
-  late final EndpointJwtRefresh jwtRefresh;
-
   late final EndpointStudent student;
-
-  late final EndpointGreeting greeting;
 
   late final Modules modules;
 
@@ -551,11 +519,9 @@ class Client extends _i1.ServerpodClientShared {
     'adminAccount': adminAccount,
     'chatbot': chatbot,
     'course': course,
+    'curriculumAdmin': curriculumAdmin,
     'emailIdp': emailIdp,
-    'googleIdp': googleIdp,
-    'jwtRefresh': jwtRefresh,
     'student': student,
-    'greeting': greeting,
   };
 
   @override

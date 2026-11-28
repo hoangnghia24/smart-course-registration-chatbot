@@ -190,9 +190,13 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     const SizedBox(height: 10),
                     _softNotice(overview.partialMessage!),
                   ],
-                  // Preview đã có nhãn “Ví dụ minh họa” theo đúng Frame-9.
-                  // Không đặt banner xanh vào giữa bố cục thiết kế gốc.
-                  if (!overview.isOfficialRecommendation) ...[
+                  if (widget.isPreview) ...[
+                    const SizedBox(height: 10),
+                    _softNotice(
+                      'Dữ liệu minh họa giao diện, không phải kết luận học vụ thực tế.',
+                      key: const ValueKey('f24-preview-notice'),
+                    ),
+                  ] else if (!overview.isOfficialRecommendation) ...[
                     const SizedBox(height: 10),
                     _softNotice(
                       'Đang dùng dữ liệu CTĐT (F04) và tiến độ (F23). '
@@ -217,7 +221,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                   if (overview.isOfficialRecommendation) ...[
                     if (recommendations.isEmpty)
                       _emptySection(
-                        'Chưa có học phần đủ điều kiện trong kết quả gợi ý hiện tại.',
+                        'Chưa có học phần trong kết quả gợi ý hiện tại.',
                       )
                     else
                       ...recommendations.map(
@@ -262,10 +266,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     if (!overview.isOfficialRecommendation) return const [];
     final values = overview.courses
         .where(
-          (c) =>
-              c.priorityRank != null &&
-              c.priorityRank! > 0 &&
-              c.eligible == true,
+          (c) => c.priorityRank != null && c.priorityRank! > 0,
         )
         .toList();
     values.sort((a, b) {
@@ -277,29 +278,20 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   List<RecommendationCourse> _nextCourses(RecommendationOverview overview) {
     if (!overview.isOfficialRecommendation) return const [];
-    final eligible = overview.courses.where((c) => c.eligible == true).toList();
-    // Nếu BE trả mã lý do chọn học kỳ, ưu tiên chính xác nhóm đó.
-    // Không suy ra điều kiện đăng ký từ trạng thái F23 hay thứ tự CTĐT.
-    final specific = eligible.where((c) {
-      final codes = <String>{
-        ...c.reasonCodes,
-        if (c.reasonCode != null) c.reasonCode!,
-      };
-      return codes.contains('RECOMMENDED_SEMESTER') ||
-          codes.contains('RETAKE_RECOMMENDED') ||
-          codes.contains('RETAKE_REQUIRED');
-    }).toList();
-    final values = specific.isNotEmpty ? specific : eligible;
+    // Preserve every backend evaluation, including ineligible and unknown
+    // items. Only priorityRank may order official results; no eligibility or
+    // reason-code inference is performed here.
+    final values = overview.courses.toList();
     values.sort((a, b) {
       if (a.priorityRank == null && b.priorityRank == null) {
-        return a.code.compareTo(b.code);
+        return 0;
       }
       if (a.priorityRank == null) return 1;
       if (b.priorityRank == null) return -1;
       final byRank = a.priorityRank!.compareTo(b.priorityRank!);
-      return byRank != 0 ? byRank : a.code.compareTo(b.code);
+      return byRank;
     });
-    return values.take(2).toList(growable: false);
+    return values.toList(growable: false);
   }
 
   Widget _pageTitle(RecommendationOverview overview) => Row(
@@ -412,24 +404,31 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     );
   }
 
-  Widget _dotLabel(String text, Color color) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
-      const SizedBox(width: 8),
-      Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
+  Widget _dotLabel(String text, Color color) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 240),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-      ),
-    ],
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 
   Widget _sectionTitle(String title, String detail) => Row(
@@ -742,71 +741,101 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  course.name,
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    color: _ink,
+      builder: (sheetContext) {
+        final mediaQuery = MediaQuery.of(sheetContext);
+        // The modal can be full-height when scroll controlled. Give the
+        // viewport a finite height so long explanations/reason codes scroll
+        // instead of making the sheet's Column overflow.
+        final maxSheetHeight =
+            (mediaQuery.size.height -
+                    mediaQuery.viewInsets.bottom -
+                    mediaQuery.padding.bottom -
+                    28)
+                .clamp(0.0, mediaQuery.size.height)
+                .toDouble();
+
+        return SafeArea(
+          top: false,
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxSheetHeight),
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        course.name,
+                        style: const TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          color: _ink,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${course.code} · ${course.credits == null ? 'Chưa rõ tín chỉ' : '${course.credits} tín chỉ'}',
+                        style: const TextStyle(color: _muted),
+                      ),
+                      const SizedBox(height: 16),
+                      _detailRow(
+                        'Tiến độ học',
+                        _progressText(course.progressStatus),
+                      ),
+                      _detailRow(
+                        'Điều kiện đăng ký',
+                        _eligibilityText(course, official),
+                      ),
+                      _detailRow(
+                        'Thứ tự ưu tiên',
+                        course.priorityRank == null
+                            ? 'Chưa xác định'
+                            : 'Nên ưu tiên · hạng ${course.priorityRank}',
+                      ),
+                      if (official && course.explanations.isNotEmpty)
+                        _detailRow(
+                          'Lý do gợi ý',
+                          course.explanations.join('; '),
+                        ),
+                      if (official && course.reasonCodes.isNotEmpty)
+                        _detailRow(
+                          'Mã lý do',
+                          course.reasonCodes.join(', '),
+                        ),
+                      if (official && course.availableClassCount != null)
+                        _detailRow(
+                          'Số lớp được API trả về',
+                          '${course.availableClassCount}',
+                        ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Danh sách lớp học phần chỉ được hiển thị khi API F05 '
+                        'được tích hợp. Hiện chưa thể tra cứu lớp đang mở từ màn hình này.',
+                        style: TextStyle(color: _muted, fontSize: 12),
+                      ),
+                      const SizedBox(height: 14),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          child: const Text('Đóng'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${course.code} · ${course.credits == null ? 'Chưa rõ tín chỉ' : '${course.credits} tín chỉ'}',
-                  style: const TextStyle(color: _muted),
-                ),
-                const SizedBox(height: 16),
-                _detailRow('Tiến độ học', _progressText(course.progressStatus)),
-                _detailRow(
-                  'Điều kiện đăng ký',
-                  !official
-                      ? 'Chưa có dữ liệu từ F24/F27'
-                      : course.eligible == true
-                      ? 'Đủ điều kiện'
-                      : course.eligible == false
-                      ? 'Chưa đủ điều kiện'
-                      : 'Chưa xác định',
-                ),
-                _detailRow(
-                  'Thứ tự ưu tiên',
-                  course.priorityRank?.toString() ?? 'Chưa xác định',
-                ),
-                if (official && course.explanations.isNotEmpty)
-                  _detailRow('Lý do gợi ý', course.explanations.join('; ')),
-                if (official && course.reasonCodes.isNotEmpty)
-                  _detailRow('Mã lý do', course.reasonCodes.join(', ')),
-                if (official && course.availableClassCount != null)
-                  _detailRow(
-                    'Số lớp được API trả về',
-                    '${course.availableClassCount}',
-                  ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Danh sách lớp học phần chỉ được hiển thị khi API F05 '
-                  'được tích hợp. Hiện chưa thể tra cứu lớp đang mở từ màn hình này.',
-                  style: TextStyle(color: _muted, fontSize: 12),
-                ),
-                const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                    child: const Text('Đóng'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -817,6 +846,13 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       style: const TextStyle(fontSize: 14, color: _ink),
     ),
   );
+
+  String _eligibilityText(RecommendationCourse course, bool official) {
+    if (!official) return 'Chưa có dữ liệu từ F24/F27';
+    if (course.eligible == true) return 'Đủ điều kiện';
+    if (course.eligible == false) return 'Chưa đủ điều kiện';
+    return course.eligibilityStatus ?? 'Chưa xác định';
+  }
 
   String _progressText(String? status) => switch (status) {
     'PASSED' => 'Đã đạt',

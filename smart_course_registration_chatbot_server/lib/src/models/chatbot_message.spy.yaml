@@ -1,0 +1,13 @@
+class: ChatbotMessage
+table: app_chatbot_message
+serverOnly: true
+
+fields:
+  conversationId: int, relation(parent=app_chatbot_conversation, onDelete=Cascade)
+  role: ChatbotMessageRole
+  content: String
+  createdAt: DateTime
+
+indexes:
+  chatbot_message_conversation_created_idx:
+    fields: conversationId, createdAt

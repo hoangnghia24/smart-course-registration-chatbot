@@ -9,8 +9,13 @@ fields:
   isRequired: bool
   groupId: int?, relation(parent=app_curriculum_group)
   itemOrder: int?
+
+  ### F07 - So tin chi chup lai tu Course khi luu ban nhap.
+  ### Phien ban da cong bo khong doi khi Course bi sua tin chi.
+  ### Nullable chi de tuong thich du lieu cu (backfill trong migration).
+  credits: int?
+
 indexes:
   app_curriculum_item_unique:
     fields: curriculumVersionId, courseId
     unique: true
-  

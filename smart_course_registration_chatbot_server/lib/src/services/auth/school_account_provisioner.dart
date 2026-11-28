@@ -5,6 +5,8 @@ import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
 
 import '../../generated/protocol.dart';
+import '../curriculum/curriculum_admin_service.dart';
+import '../curriculum/curriculum_rules.dart';
 
 /// Only call from trusted server-side code or an endpoint that has already
 /// checked the logged-in caller has the ADMIN role. Never expose publicly.
@@ -17,6 +19,10 @@ class SchoolAccountProvisioner {
     String? studentCode,
     int? curriculumVersionId,
     String? lecturerCode,
+    // F07 (hoc che tin chi): CTDT + nam nhap hoc; tu dong chon phien ban
+    // PUBLISHED co nam hieu luc lon nhat <= nam nhap hoc.
+    String? curriculumCode,
+    int? admissionYear,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(normalizedEmail)) {
@@ -35,10 +41,26 @@ class SchoolAccountProvisioner {
     if (password.length < 16) {
       throw ArgumentError('Mật khẩu cấp ban đầu phải có ít nhất 16 ký tự.');
     }
-    if (role == AccountRole.student &&
-        ((studentCode?.trim().isEmpty ?? true) ||
-            curriculumVersionId == null)) {
-      throw ArgumentError('Student cần studentCode và curriculumVersionId.');
+    final normalizedCurriculum = (curriculumCode?.trim().isEmpty ?? true)
+        ? null
+        : normalizeCode(curriculumCode!);
+    if (admissionYear != null &&
+        (admissionYear < CurriculumLimits.minYear ||
+            admissionYear > CurriculumLimits.maxYear)) {
+      throw ArgumentError('Năm nhập học không hợp lệ.');
+    }
+    if (role == AccountRole.student) {
+      if (studentCode?.trim().isEmpty ?? true) {
+        throw ArgumentError('Student cần studentCode.');
+      }
+      // F07: hoac Admin chi dinh phien ban, hoac tu dong theo
+      // CTDT + nam nhap hoc.
+      if (curriculumVersionId == null &&
+          (normalizedCurriculum == null || admissionYear == null)) {
+        throw ArgumentError(
+          'Student cần curriculumVersionId hoặc curriculumCode + admissionYear.',
+        );
+      }
     }
     if (role == AccountRole.lecturer &&
         (lecturerCode?.trim().isEmpty ?? true)) {
@@ -100,13 +122,56 @@ class SchoolAccountProvisioner {
       );
 
       if (role == AccountRole.student) {
+        int? versionId = curriculumVersionId;
+        if (versionId == null) {
+          final curriculum = await Curriculum.db.findFirstRow(
+            session,
+            where: (t) => t.code.equals(normalizedCurriculum!),
+            transaction: transaction,
+          );
+          if (curriculum == null) {
+            throw StateError('Không tìm thấy CTĐT $normalizedCurriculum.');
+          }
+          versionId = await CurriculumAdminService.resolveVersionForAdmission(
+            session,
+            curriculumId: curriculum.id!,
+            admissionYear: admissionYear!,
+            transaction: transaction,
+          );
+          if (versionId == null) {
+            throw StateError(
+              'CTĐT $normalizedCurriculum chưa có phiên bản công bố '
+              'hiệu lực từ năm $admissionYear trở về trước.',
+            );
+          }
+        }
+        final version = await CurriculumVersion.db.findById(
+          session,
+          versionId,
+          transaction: transaction,
+        );
+        if (version == null ||
+            version.status != CurriculumVersionStatus.published) {
+          throw StateError('Chỉ được gán phiên bản CTĐT đã công bố.');
+        }
+        if (normalizedCurriculum != null) {
+          final curriculum = await Curriculum.db.findById(
+            session,
+            version.curriculumId,
+            transaction: transaction,
+          );
+          if (curriculum?.code != normalizedCurriculum) {
+            throw StateError('Phiên bản không thuộc CTĐT $normalizedCurriculum.');
+          }
+        }
         await Student.db.insertRow(
           session,
           Student(
             userAccountId: account.id!,
             studentCode: studentCode!.trim(),
-            curriculumVersionId: curriculumVersionId!,
+            curriculumVersionId: versionId,
             academicStatus: 'STUDYING', // Demo; use official enum later.
+            admissionYear: admissionYear,
           ),
           transaction: transaction,
         );

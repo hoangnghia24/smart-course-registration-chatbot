@@ -96,13 +96,52 @@ const _official = RecommendationOverview(
   ],
 );
 
+const _longDetailOverview = RecommendationOverview(
+  hasCurriculum: true,
+  hasProgress: true,
+  isOfficialRecommendation: true,
+  courses: [
+    RecommendationCourse(
+      code: 'LONG101',
+      name:
+          'Học phần có tên rất dài để kiểm tra khả năng xuống dòng trên mobile',
+      credits: 3,
+      eligible: false,
+      priorityRank: 2,
+      explanations: [
+        'Lý do Backend rất dài và cần được giữ nguyên trong bảng chi tiết học phần.',
+        'Chưa đáp ứng đầy đủ điều kiện tiên quyết theo kết quả đánh giá hiện tại.',
+        'Có thể có thêm nhiều giải thích nghiệp vụ từ Rule Engine F24/F27.',
+        'Nội dung này dùng để tái hiện trường hợp màn hình nhỏ và nội dung dài.',
+        'Không được tự rút gọn thành kết luận khác với dữ liệu Backend.',
+      ],
+      reasonCodes: [
+        'PREREQUISITE_NOT_MET',
+        'REQUIRED_COURSE_PENDING',
+        'LONG_REASON_CODE_FOR_MOBILE_LAYOUT',
+        'ANOTHER_REASON_CODE',
+      ],
+      availableClassCount: 12,
+    ),
+  ],
+);
+
 Future<void> _show(
   WidgetTester tester,
   RecommendationRepository repo, {
   bool preview = false,
+  EdgeInsets? viewInsets,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      builder: viewInsets == null
+          ? null
+          : (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(viewInsets: viewInsets),
+              child: child!,
+            ),
       home: RecommendationScreen(
         repository: repo,
         isPreview: preview,
@@ -127,25 +166,28 @@ void main() {
     expect(find.text('Kế hoạch học tập cá nhân'), findsOneWidget);
     expect(find.text('Thứ tự môn học đề xuất'), findsOneWidget);
     expect(find.text('Gợi ý học kỳ tiếp theo'), findsOneWidget);
-    expect(find.byKey(const ValueKey('f24-preview-notice')), findsNothing);
+    expect(find.byKey(const ValueKey('f24-preview-notice')), findsOneWidget);
     expect(find.text('Học theo thứ tự phù hợp'), findsOneWidget);
     expect(find.text('1 môn cần học lại'), findsOneWidget);
     expect(find.byKey(const ValueKey('f24-menu')), findsOneWidget);
     expect(find.textContaining('86/150 tín chỉ'), findsOneWidget);
   });
 
-  testWidgets('Chưa có Rule Engine: không tự tạo các bước hoặc nhãn Nên xem', (
-    tester,
-  ) async {
-    await _show(tester, _Repo(() async => _fallback));
-    expect(find.byKey(const ValueKey('f24-disclaimer')), findsOneWidget);
-    expect(find.byKey(const ValueKey('f24-roadmap-empty')), findsOneWidget);
-    expect(find.byKey(const ValueKey('f24-step-CS101')), findsNothing);
-    expect(find.text('Học phần trong CTĐT'), findsOneWidget);
-    expect(find.text('Nên xem'), findsNothing);
-    expect(find.text('2 môn chưa đạt'), findsNothing);
-    expect(find.text('1 môn chưa đạt'), findsOneWidget);
-  });
+  testWidgets(
+    'Chưa có Rule Engine: không tự tạo các bước hoặc nhãn Nên ưu tiên',
+    (
+      tester,
+    ) async {
+      await _show(tester, _Repo(() async => _fallback));
+      expect(find.byKey(const ValueKey('f24-disclaimer')), findsOneWidget);
+      expect(find.byKey(const ValueKey('f24-roadmap-empty')), findsOneWidget);
+      expect(find.byKey(const ValueKey('f24-step-CS101')), findsNothing);
+      expect(find.text('Học phần trong CTĐT'), findsOneWidget);
+      expect(find.text('Nên ưu tiên'), findsNothing);
+      expect(find.text('2 môn chưa đạt'), findsNothing);
+      expect(find.text('1 môn chưa đạt'), findsOneWidget);
+    },
+  );
 
   testWidgets('Thứ tự 1-2-3 đến từ priority; không dùng danh sách F23', (
     tester,
@@ -168,18 +210,19 @@ void main() {
     );
   });
 
-  testWidgets('Gợi ý học kỳ có nhãn Nên xem và Học lại đúng mã BE', (
+  testWidgets('Gợi ý học kỳ có nhãn Nên ưu tiên và Học lại đúng mã BE', (
     tester,
   ) async {
     await _show(tester, _Repo(() async => _official));
     await _see(tester, const ValueKey('f24-course-CS202'));
     expect(find.byKey(const ValueKey('f24-course-CS202')), findsOneWidget);
     expect(find.byKey(const ValueKey('f24-course-CS404')), findsOneWidget);
-    expect(find.text('Nên xem'), findsOneWidget);
+    expect(find.text('Nên ưu tiên'), findsNWidgets(4));
     expect(find.text('Học lại'), findsOneWidget);
-    expect(find.text('Xem thông tin và lớp học phần'), findsOneWidget);
+    expect(find.text('Xem thông tin và lớp học phần'), findsNWidgets(4));
     expect(find.text('Xem các lớp học lại đang mở'), findsOneWidget);
-    expect(find.byKey(const ValueKey('f24-course-CS999')), findsNothing);
+    expect(find.byKey(const ValueKey('f24-course-CS999')), findsOneWidget);
+    expect(find.text('Chưa đủ điều kiện'), findsOneWidget);
   });
 
   testWidgets('Nhấn thông tin môn mở chi tiết, không bịa danh sách lớp', (
@@ -324,5 +367,94 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('f24-roadmap-empty')), findsOneWidget);
     expect(find.byKey(const ValueKey('f24-step-CS101')), findsNothing);
+  });
+
+  testWidgets('Bố cục F24/F27 không overflow trên điện thoại', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _show(tester, _Repo(() async => _official));
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.byKey(const ValueKey('f24-course-CS999')));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Bottom sheet chi tiết cuộn được ở 390x800 với nội dung dài', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _show(tester, _Repo(() async => _longDetailOverview));
+    await tester.drag(
+      find.byKey(const ValueKey('f24-scroll')),
+      const Offset(0, -700),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('f24-action-LONG101')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đóng'), findsOneWidget);
+    expect(find.textContaining('PREREQUISITE_NOT_MET'), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -260),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Bottom sheet chi tiết không overflow ở màn hình nhỏ hơn', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _show(tester, _Repo(() async => _longDetailOverview));
+    await tester.drag(
+      find.byKey(const ValueKey('f24-scroll')),
+      const Offset(0, -1000),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('f24-action-LONG101')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Điều kiện đăng ký: Chưa đủ điều kiện'), findsOneWidget);
+    expect(find.text('Đóng'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Bottom sheet vẫn cuộn được khi có keyboard inset', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _show(
+      tester,
+      _Repo(() async => _longDetailOverview),
+      viewInsets: const EdgeInsets.only(bottom: 280),
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('f24-scroll')),
+      const Offset(0, -700),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('f24-action-LONG101')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đóng'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

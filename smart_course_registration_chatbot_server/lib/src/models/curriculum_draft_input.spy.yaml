@@ -1,0 +1,11 @@
+### F07 - Noi dung ban nhap gui len de luu (thay toan bo khoi va hoc phan).
+class: CurriculumDraftInput
+fields:
+  versionId: int
+  ### Revision client dang giu; sai lech -> VERSION_CONFLICT
+  expectedRevision: int
+  versionCode: String
+  effectiveYear: int
+  totalCreditsRequired: int?
+  groups: List<AdminCurriculumGroupDto>
+  items: List<AdminCurriculumItemDto>

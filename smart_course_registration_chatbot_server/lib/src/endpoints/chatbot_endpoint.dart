@@ -2,68 +2,357 @@ import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
 import '../security/account_guard.dart';
-import '../services/chatbot/gemini_chat_service.dart';
+import '../services/ai/ai_service.dart';
+import '../services/ai/rag_service.dart';
+
+typedef ChatbotAnswerGenerator =
+    Future<String> Function(
+      Session session,
+      String message,
+      List<ChatbotMessage> history,
+    );
 
 class ChatbotEndpoint extends Endpoint {
+  ChatbotEndpoint({ChatbotAnswerGenerator? answerGenerator})
+    : _answerGenerator = answerGenerator;
+
+  final ChatbotAnswerGenerator? _answerGenerator;
+
+  static Future<String> _generateAnswer(
+    Session session,
+    String question,
+    int studentId,
+    List<ChatbotMessage> history,
+  ) async {
+    final student = await Student.db.findById(session, studentId);
+    final version = student == null
+        ? null
+        : await CurriculumVersion.db.findById(
+            session,
+            student.curriculumVersionId,
+          );
+    final curriculum = version == null
+        ? null
+        : await Curriculum.db.findById(session, version.curriculumId);
+    final program = _resolveRagProgram(curriculum, student?.studentCode);
+    final cohort = _resolveRagCohort(student, version);
+    final retrievalQuery = await AiService.instance.rewriteRetrievalQuery(
+      question, history,
+    );
+    final context = await RagService.instance().retrieve(
+      retrievalQuery,
+      defaultProgram: program,
+      defaultCohort: cohort,
+    );
+    session.log(
+      'RAG: program=${program ?? 'unknown'}, cohort=${cohort ?? 'unknown'}, '
+      '${context.length} ký tự ngữ cảnh.',
+      level: LogLevel.info,
+    );
+
+    if (_requiresRagClarification(context)) return context;
+    return AiService.instance.generateAnswer(
+      question, context, history: history,
+    );
+  }
+
+  static bool _requiresRagClarification(String context) =>
+      context.startsWith('Chưa xác định được chương trình') ||
+      context.startsWith('Chưa xác định được khóa') ||
+      context.startsWith('Câu hỏi đang nhắc đến nhiều chương trình') ||
+      context.startsWith('Dữ liệu RAG hiện chỉ hỗ trợ khóa');
+
+  static String? _resolveRagProgram(
+    Curriculum? curriculum,
+    String? studentCode,
+  ) {
+    final curriculumCode = curriculum?.code.trim().toUpperCase();
+    if (curriculumCode != null) {
+      if (const {'CNTT', 'ATTT', 'KTDL', 'CNTT-JP'}.contains(curriculumCode)) {
+        return curriculumCode;
+      }
+      if (curriculumCode.contains('CNTT') &&
+          (curriculumCode.contains('JP') || curriculumCode.contains('NHAT'))) {
+        return 'CNTT-JP';
+      }
+    }
+
+    final majorCode = curriculum?.majorCode.trim();
+    const programsByMajorCode = {
+      '7480201': 'CNTT',
+      '7480202': 'ATTT',
+      '7480203': 'KTDL',
+    };
+    final programByMajor = programsByMajorCode[majorCode];
+    if (programByMajor != null) return programByMajor;
+
+    final normalizedStudentCode = studentCode?.trim();
+    if (normalizedStudentCode != null &&
+        RegExp(r'^\d{8}$').hasMatch(normalizedStudentCode) &&
+        normalizedStudentCode.substring(2, 5) == '110') {
+      return 'CNTT';
+    }
+    return null;
+  }
+
+  static int? _resolveRagCohort(
+    Student? student,
+    CurriculumVersion? version,
+  ) {
+    final admissionYear =
+        student?.admissionYear ?? _admissionYearFromCode(student?.studentCode);
+    if (admissionYear != null) {
+      if (admissionYear >= 2026) return 2026;
+      if (admissionYear >= 2023) return 2023;
+    }
+
+    final effectiveYear = version?.effectiveYear;
+    return effectiveYear == 2023 || effectiveYear == 2026
+        ? effectiveYear
+        : null;
+  }
+
+  static int? _admissionYearFromCode(String? studentCode) {
+    final value = studentCode?.trim();
+    if (value == null || !RegExp(r'^\d{8}$').hasMatch(value)) return null;
+    return 2000 + int.parse(value.substring(0, 2));
+  }
+
   @override
   bool get requireLogin => true;
 
-  /// Hàm để sinh viên gửi câu hỏi
-  Future<String> sendMessage(
+  /// Hàm để sinh viên gửi câu hỏi.
+  Future<ChatbotReplyDto> sendMessage(
     Session session,
     String message,
+    int? conversationId,
+    String clientRequestId,
   ) async {
-    return _send(session, message);
+    return _send(
+      session,
+      message,
+      conversationId: conversationId,
+      clientRequestId: clientRequestId,
+    );
   }
 
-  /// Hàm private xử lý câu hỏi
-  Future<String> _send(
+  /// Hàm private xử lý câu hỏi.
+  Future<ChatbotReplyDto> _send(
     Session session,
-    String message,
-  ) async {
-    // Xác thực và kiểm tra vai trò sinh viên
-    await AccountGuard.requireRole(
-      session,
-      allowedRoles: {AccountRole.student},
-    );
-
-    // Kiểm tra nội dung câu hỏi
+    String message, {
+    required int? conversationId,
+    required String clientRequestId,
+  }) async {
+    // 1. Kiểm tra nội dung trước khi truy vấn database hoặc gọi AI.
     final question = message.trim();
 
-    if (question.isEmpty || question.length > 2000) {
+    if (question.isEmpty || question.runes.length > 2000) {
       throw AppException(
         code: 'CHAT_MESSAGE_INVALID',
         message: 'Tin nhắn phải có từ 1 đến 2000 ký tự.',
       );
     }
 
-    // Chưa có dữ liệu để gợi ý môn học cá nhân
-    if (_isRecommendationQuestion(question)) {
-      return 'Hiện tại hệ thống chưa có đủ dữ liệu '
-          'học tập và chương trình đào tạo của bạn '
-          'để đưa ra danh sách môn học phù hợp. '
-          'Chức năng gợi ý sẽ hoạt động khi dữ liệu '
-          'được cập nhật và kiểm tra bởi hệ thống F24.';
+    if (conversationId != null && conversationId <= 0) {
+      throw AppException(
+        code: 'CHAT_CONVERSATION_INVALID',
+        message: 'ID hội thoại không hợp lệ.',
+      );
     }
 
-    // Các câu hỏi thông thường gửi đến Gemini
-    return GeminiChatService.sendMessage(session, question);
+    final requestId = clientRequestId.trim();
+    if (requestId.isEmpty || requestId.length > 128) {
+      throw AppException(
+        code: 'CHAT_REQUEST_INVALID',
+        message: 'Request ID phải có từ 1 đến 128 ký tự.',
+      );
+    }
+
+    final studentId = await AccountGuard.requireStudentId(session);
+    final existing = await _findExistingReply(
+      session, studentId, requestId, question, conversationId,
+    );
+    if (existing != null) return existing;
+
+    // Kiểm tra quyền trước khi đọc lịch sử hoặc gọi AI.
+    if (conversationId != null) {
+      await _requireOwnedConversation(
+        session,
+        conversationId,
+        studentId,
+      );
+    }
+
+    final history = conversationId == null
+        ? <ChatbotMessage>[]
+        : await _loadRecentHistory(session, conversationId);
+
+    // 3. Gọi Local LLM thông qua Ollama trước transaction để không giữ
+    // transaction database trong lúc chờ tác vụ mạng có thể kéo dài.
+    // Không sử dụng Gemini API.
+    final answer = _answerGenerator == null
+        ? await _generateAnswer(session, question, studentId, history)
+        : await _answerGenerator(session, question, history);
+
+    // 4. Chỉ khi AI trả lời thành công mới lưu trọn vẹn lượt trao đổi.
+    try {
+      return await session.db.transaction((transaction) async {
+        final now = DateTime.now().toUtc();
+        late final ChatbotConversation conversation;
+
+        if (conversationId == null) {
+          conversation = await ChatbotConversation.db.insertRow(
+            session,
+            ChatbotConversation(
+              studentId: studentId,
+              title: _buildTitle(question),
+              createdAt: now,
+              updatedAt: now,
+            ),
+            transaction: transaction,
+          );
+        } else {
+          // Kiểm tra lại trong transaction để không ghi vào hội thoại đã bị
+          // xóa hoặc đổi quyền sở hữu giữa lúc AI đang xử lý.
+          conversation = await _requireOwnedConversation(
+            session,
+            conversationId,
+            studentId,
+            transaction: transaction,
+          );
+          conversation.updatedAt = now;
+          await ChatbotConversation.db.updateRow(
+            session,
+            conversation,
+            columns: (t) => [t.updatedAt],
+            transaction: transaction,
+          );
+        }
+
+        final savedConversationId = conversation.id!;
+        await ChatbotMessage.db.insert(
+          session,
+          [
+            ChatbotMessage(
+              conversationId: savedConversationId,
+              role: ChatbotMessageRole.user,
+              content: question,
+              createdAt: now,
+            ),
+            ChatbotMessage(
+              conversationId: savedConversationId,
+              role: ChatbotMessageRole.assistant,
+              content: answer,
+              createdAt: now,
+            ),
+          ],
+          transaction: transaction,
+        );
+        await ChatbotRequest.db.insertRow(
+          session,
+          ChatbotRequest(
+            studentId: studentId,
+            conversationId: savedConversationId,
+            requestedConversationId: conversationId,
+            clientRequestId: requestId,
+            question: question,
+            answer: answer,
+            createdAt: now,
+          ),
+          transaction: transaction,
+        );
+        return ChatbotReplyDto(
+          conversationId: savedConversationId,
+          answer: answer,
+        );
+      });
+    } on DatabaseQueryException catch (e) {
+      if (e.code == '23505' &&
+          e.constraintName == 'chatbot_request_student_request_idx') {
+        final existing = await _findExistingReply(
+          session, studentId, requestId, question, conversationId,
+        );
+        if (existing != null) return existing;
+      }
+      rethrow;
+    }
   }
 
-  /// Nhận diện yêu cầu gợi ý môn học
-  bool _isRecommendationQuestion(String question) {
-    final text = question.toLowerCase();
+  Future<List<ChatbotMessage>> _loadRecentHistory(
+    Session session,
+    int conversationId,
+  ) async {
+    final messages = await ChatbotMessage.db.find(
+      session,
+      where: (t) => t.conversationId.equals(conversationId),
+      orderBy: (t) => t.id,
+      orderDescending: true,
+      limit: 8,
+    );
+    return messages.reversed.toList(growable: false);
+  }
 
-    return const [
-      'gợi ý môn',
-      'gợi ý học phần',
-      'tư vấn môn',
-      'nên đăng ký môn',
-      'đăng ký môn nào',
-      'nên học môn nào',
-      'học môn nào',
-      'đề xuất môn',
-      'đề xuất học phần',
-    ].any(text.contains);
+  Future<ChatbotReplyDto?> _findExistingReply(
+    Session session,
+    int studentId,
+    String requestId,
+    String question,
+    int? requestedConversationId,
+  ) async {
+    final request = await ChatbotRequest.db.findFirstRow(
+      session,
+      where: (t) => t.studentId.equals(studentId) &
+          t.clientRequestId.equals(requestId),
+    );
+    if (request == null) return null;
+    if (request.question != question ||
+        request.requestedConversationId != requestedConversationId) {
+      throw AppException(
+        code: 'CHAT_REQUEST_CONFLICT',
+        message: 'Request ID đã được sử dụng cho yêu cầu khác.',
+      );
+    }
+    await _requireOwnedConversation(session, request.conversationId, studentId);
+    return ChatbotReplyDto(
+      conversationId: request.conversationId,
+      answer: request.answer,
+    );
+  }
+
+  Future<ChatbotConversation> _requireOwnedConversation(
+    Session session,
+    int conversationId,
+    int studentId, {
+    Transaction? transaction,
+  }) async {
+    final conversation = await ChatbotConversation.db.findFirstRow(
+      session,
+      where: (t) => t.id.equals(conversationId) & t.studentId.equals(studentId),
+      transaction: transaction,
+    );
+
+    if (conversation == null) {
+      throw AppException(
+        code: 'CHAT_CONVERSATION_NOT_FOUND',
+        message: 'Không tìm thấy hội thoại.',
+      );
+    }
+
+    final cutoff = DateTime.now().toUtc().subtract(const Duration(hours: 24));
+    if (!conversation.updatedAt.isAfter(cutoff)) {
+      throw AppException(
+        code: 'CHAT_CONVERSATION_EXPIRED',
+        message: 'Hội thoại đã hết hạn. Hãy bắt đầu hội thoại mới.',
+      );
+    }
+    return conversation;
+  }
+
+  String _buildTitle(String message) {
+    const maxTitleLength = 80;
+    final characters = message.runes.toList(growable: false);
+    if (characters.length <= maxTitleLength) return message;
+
+    return '${String.fromCharCodes(characters.take(maxTitleLength))}…';
   }
 }

@@ -1,0 +1,14 @@
+### F07 - Tom tat phien ban CTDT
+class: AdminCurriculumVersionSummaryDto
+fields:
+  id: int
+  curriculumId: int
+  versionCode: String
+  effectiveYear: int
+  ### DRAFT, PUBLISHED, ARCHIVED
+  status: String
+  totalCreditsRequired: int?
+  revision: int
+  publishedAt: DateTime?
+  ### So sinh vien dang gan voi phien ban
+  studentCount: int
