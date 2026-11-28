@@ -9,6 +9,7 @@ typedef ChatbotAnswerGenerator =
     Future<String> Function(
       Session session,
       String message,
+      List<ChatbotMessage> history,
     );
 
 class ChatbotEndpoint extends Endpoint {
@@ -21,6 +22,7 @@ class ChatbotEndpoint extends Endpoint {
     Session session,
     String question,
     int studentId,
+    List<ChatbotMessage> history,
   ) async {
     final student = await Student.db.findById(session, studentId);
     final version = student == null
@@ -34,8 +36,11 @@ class ChatbotEndpoint extends Endpoint {
         : await Curriculum.db.findById(session, version.curriculumId);
     final program = _resolveRagProgram(curriculum, student?.studentCode);
     final cohort = _resolveRagCohort(student, version);
+    final retrievalQuery = await AiService.instance.rewriteRetrievalQuery(
+      question, history,
+    );
     final context = await RagService.instance().retrieve(
-      question,
+      retrievalQuery,
       defaultProgram: program,
       defaultCohort: cohort,
     );
@@ -46,7 +51,9 @@ class ChatbotEndpoint extends Endpoint {
     );
 
     if (_requiresRagClarification(context)) return context;
-    return AiService.instance.generateAnswer(question, context);
+    return AiService.instance.generateAnswer(
+      question, context, history: history,
+    );
   }
 
   static bool _requiresRagClarification(String context) =>
@@ -115,11 +122,11 @@ class ChatbotEndpoint extends Endpoint {
   bool get requireLogin => true;
 
   /// Hàm để sinh viên gửi câu hỏi.
-  Future<String> sendMessage(
+  Future<ChatbotReplyDto> sendMessage(
     Session session,
     String message,
     int? conversationId,
-    String? clientRequestId,
+    String clientRequestId,
   ) async {
     return _send(
       session,
@@ -130,16 +137,12 @@ class ChatbotEndpoint extends Endpoint {
   }
 
   /// Hàm private xử lý câu hỏi.
-  Future<String> _send(
+  Future<ChatbotReplyDto> _send(
     Session session,
     String message, {
     required int? conversationId,
-    required String? clientRequestId,
+    required String clientRequestId,
   }) async {
-    // clientRequestId là một phần của contract để client theo dõi request.
-    // Đặc tả hiện tại chưa yêu cầu lưu hoặc dùng nó để khử trùng lặp.
-    clientRequestId;
-
     // 1. Kiểm tra nội dung trước khi truy vấn database hoặc gọi AI.
     final question = message.trim();
 
@@ -157,8 +160,21 @@ class ChatbotEndpoint extends Endpoint {
       );
     }
 
-    // 2. Xác thực sinh viên và kiểm tra quyền sở hữu hội thoại cũ.
+    final requestId = clientRequestId.trim();
+    if (requestId.isEmpty || requestId.length > 128) {
+      throw AppException(
+        code: 'CHAT_REQUEST_INVALID',
+        message: 'Request ID phải có từ 1 đến 128 ký tự.',
+      );
+    }
+
     final studentId = await AccountGuard.requireStudentId(session);
+    final existing = await _findExistingReply(
+      session, studentId, requestId, question, conversationId,
+    );
+    if (existing != null) return existing;
+
+    // Kiểm tra quyền trước khi đọc lịch sử hoặc gọi AI.
     if (conversationId != null) {
       await _requireOwnedConversation(
         session,
@@ -167,69 +183,140 @@ class ChatbotEndpoint extends Endpoint {
       );
     }
 
+    final history = conversationId == null
+        ? <ChatbotMessage>[]
+        : await _loadRecentHistory(session, conversationId);
+
     // 3. Gọi Local LLM thông qua Ollama trước transaction để không giữ
     // transaction database trong lúc chờ tác vụ mạng có thể kéo dài.
     // Không sử dụng Gemini API.
     final answer = _answerGenerator == null
-        ? await _generateAnswer(session, question, studentId)
-        : await _answerGenerator(session, question);
+        ? await _generateAnswer(session, question, studentId, history)
+        : await _answerGenerator(session, question, history);
 
     // 4. Chỉ khi AI trả lời thành công mới lưu trọn vẹn lượt trao đổi.
-    await session.db.transaction((transaction) async {
-      final now = DateTime.now().toUtc();
-      late final ChatbotConversation conversation;
+    try {
+      return await session.db.transaction((transaction) async {
+        final now = DateTime.now().toUtc();
+        late final ChatbotConversation conversation;
 
-      if (conversationId == null) {
-        conversation = await ChatbotConversation.db.insertRow(
+        if (conversationId == null) {
+          conversation = await ChatbotConversation.db.insertRow(
+            session,
+            ChatbotConversation(
+              studentId: studentId,
+              title: _buildTitle(question),
+              createdAt: now,
+              updatedAt: now,
+            ),
+            transaction: transaction,
+          );
+        } else {
+          // Kiểm tra lại trong transaction để không ghi vào hội thoại đã bị
+          // xóa hoặc đổi quyền sở hữu giữa lúc AI đang xử lý.
+          conversation = await _requireOwnedConversation(
+            session,
+            conversationId,
+            studentId,
+            transaction: transaction,
+          );
+          conversation.updatedAt = now;
+          await ChatbotConversation.db.updateRow(
+            session,
+            conversation,
+            columns: (t) => [t.updatedAt],
+            transaction: transaction,
+          );
+        }
+
+        final savedConversationId = conversation.id!;
+        await ChatbotMessage.db.insert(
           session,
-          ChatbotConversation(
+          [
+            ChatbotMessage(
+              conversationId: savedConversationId,
+              role: ChatbotMessageRole.user,
+              content: question,
+              createdAt: now,
+            ),
+            ChatbotMessage(
+              conversationId: savedConversationId,
+              role: ChatbotMessageRole.assistant,
+              content: answer,
+              createdAt: now,
+            ),
+          ],
+          transaction: transaction,
+        );
+        await ChatbotRequest.db.insertRow(
+          session,
+          ChatbotRequest(
             studentId: studentId,
-            title: _buildTitle(question),
+            conversationId: savedConversationId,
+            requestedConversationId: conversationId,
+            clientRequestId: requestId,
+            question: question,
+            answer: answer,
             createdAt: now,
-            updatedAt: now,
           ),
           transaction: transaction,
         );
-      } else {
-        // Kiểm tra lại trong transaction để không ghi vào hội thoại đã bị
-        // xóa hoặc đổi quyền sở hữu giữa lúc AI đang xử lý.
-        conversation = await _requireOwnedConversation(
-          session,
-          conversationId,
-          studentId,
-          transaction: transaction,
+        return ChatbotReplyDto(
+          conversationId: savedConversationId,
+          answer: answer,
         );
-        conversation.updatedAt = now;
-        await ChatbotConversation.db.updateRow(
-          session,
-          conversation,
-          columns: (t) => [t.updatedAt],
-          transaction: transaction,
+      });
+    } on DatabaseQueryException catch (e) {
+      if (e.code == '23505' &&
+          e.constraintName == 'chatbot_request_student_request_idx') {
+        final existing = await _findExistingReply(
+          session, studentId, requestId, question, conversationId,
         );
+        if (existing != null) return existing;
       }
+      rethrow;
+    }
+  }
 
-      final savedConversationId = conversation.id!;
-      await ChatbotMessage.db.insert(
-        session,
-        [
-          ChatbotMessage(
-            conversationId: savedConversationId,
-            role: ChatbotMessageRole.user,
-            content: question,
-            createdAt: now,
-          ),
-          ChatbotMessage(
-            conversationId: savedConversationId,
-            role: ChatbotMessageRole.assistant,
-            content: answer,
-            createdAt: now,
-          ),
-        ],
-        transaction: transaction,
+  Future<List<ChatbotMessage>> _loadRecentHistory(
+    Session session,
+    int conversationId,
+  ) async {
+    final messages = await ChatbotMessage.db.find(
+      session,
+      where: (t) => t.conversationId.equals(conversationId),
+      orderBy: (t) => t.id,
+      orderDescending: true,
+      limit: 8,
+    );
+    return messages.reversed.toList(growable: false);
+  }
+
+  Future<ChatbotReplyDto?> _findExistingReply(
+    Session session,
+    int studentId,
+    String requestId,
+    String question,
+    int? requestedConversationId,
+  ) async {
+    final request = await ChatbotRequest.db.findFirstRow(
+      session,
+      where: (t) => t.studentId.equals(studentId) &
+          t.clientRequestId.equals(requestId),
+    );
+    if (request == null) return null;
+    if (request.question != question ||
+        request.requestedConversationId != requestedConversationId) {
+      throw AppException(
+        code: 'CHAT_REQUEST_CONFLICT',
+        message: 'Request ID đã được sử dụng cho yêu cầu khác.',
       );
-    });
-
-    return answer;
+    }
+    await _requireOwnedConversation(session, request.conversationId, studentId);
+    return ChatbotReplyDto(
+      conversationId: request.conversationId,
+      answer: request.answer,
+    );
   }
 
   Future<ChatbotConversation> _requireOwnedConversation(
@@ -251,6 +338,13 @@ class ChatbotEndpoint extends Endpoint {
       );
     }
 
+    final cutoff = DateTime.now().toUtc().subtract(const Duration(hours: 24));
+    if (!conversation.updatedAt.isAfter(cutoff)) {
+      throw AppException(
+        code: 'CHAT_CONVERSATION_EXPIRED',
+        message: 'Hội thoại đã hết hạn. Hãy bắt đầu hội thoại mới.',
+      );
+    }
     return conversation;
   }
 

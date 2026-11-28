@@ -91,19 +91,17 @@ void run(List<String> args) async {
   // Start the server and apply pending schema migrations BEFORE demo seeding.
   await pod.start();
 
-  // Automatically seed demo COURSES only in development mode.
-  // The seeder itself checks whether the course catalog already contains data.
-  // It is safe to call on every startup: existing rows are never overwritten.
+  // Seed the owned DEV fixtures after migrations. The catalog seeder is
+  // idempotent per row, so it can add newly introduced sample data to an
+  // existing development database without deleting application data.
   if (pod.runMode == 'development') {
     final session = await pod.createSession();
     try {
       await DevSeedSampleData.run(session);
-
-      // Account provisioning remains opt-in because it requires secrets.
-      if (Platform.environment['APP_ENV'] == 'development' &&
-          Platform.environment['ALLOW_DEV_SEED'] == 'true') {
-        await DevSeedAccounts.run(session);
-      }
+      // Account provisioning remains opt-in and skips unconfigured roles.
+      await DevSeedAccounts.run(session);
+      // Terms and sections need the lecturer profile created above.
+      await DevSeedSampleData.runOperationalData(session);
     } finally {
       await session.close();
     }

@@ -74,19 +74,19 @@ class RagService {
 
     if (unsupportedCohorts.isNotEmpty) {
       return 'Dữ liệu RAG hiện chỉ hỗ trợ khóa 2023 và 2026. '
-          'Hãy yêu cầu sinh viên chọn một trong hai khóa này.';
+          'Bạn muốn tra cứu CTĐT áp dụng từ năm 2023 hay năm 2026?';
     }
     if (programs.isEmpty) {
-      return 'Chưa xác định được chương trình đào tạo. Hãy hỏi sinh viên chọn '
-          'CNTT, ATTT, KTDL hoặc CNTT hệ tiếng Nhật.';
+      return 'Chưa xác định được chương trình đào tạo của bạn. '
+          'Bạn đang học CNTT, ATTT, KTDL hay CNTT hệ tiếng Nhật?';
     }
     if (programs.length > 1) {
-      return 'Câu hỏi đang nhắc đến nhiều chương trình đào tạo. Hãy yêu cầu '
-          'sinh viên chọn một chương trình cụ thể để tránh trộn dữ liệu.';
+      return 'Câu hỏi đang nhắc đến nhiều chương trình đào tạo. '
+          'Bạn muốn tra cứu chương trình nào trước?';
     }
     if (cohorts.isEmpty) {
-      return 'Chưa xác định được khóa áp dụng. Hãy hỏi sinh viên chọn khóa '
-          '2023 hoặc 2026.';
+      return 'Chưa xác định được khóa áp dụng. '
+          'Bạn muốn tra cứu CTĐT áp dụng từ năm 2023 hay năm 2026?';
     }
 
     final program = programs.single;
@@ -97,7 +97,13 @@ class RagService {
         )
         .toList(growable: false);
 
-    var hits = _structuredSearch(question, normalizedQuestion, candidates);
+    // Ưu tiên bằng chứng đúng học phần khi người học hỏi lý do lựa chọn.
+    var hits = _asksSelectionReason(normalizedQuestion)
+        ? _selectionEvidence(normalizedQuestion, candidates, cohorts)
+        : <RagRecord>[];
+    if (hits.isEmpty) {
+      hits = _structuredSearch(question, normalizedQuestion, candidates);
+    }
     if (hits.isEmpty) {
       hits = await _semanticOrKeywordSearch(
         question,
@@ -185,6 +191,111 @@ class RagService {
     stdout.writeln('[RAG] Đã lưu ${records.length} vector vào $outputPath.');
   }
 
+  static bool _asksSelectionReason(String question) {
+    const phrases = [
+      'tai sao', 'vi sao', 'ly do', 'giai thich', 'vi ly do gi',
+      'co nen chon', 'co nen hoc', 'co nen dang ky',
+      'nen chon', 'nen dang ky', 'uu tien', 'loi ich',
+    ];
+    return phrases.any(question.contains);
+  }
+
+  static bool _isTeachingPlan(RagRecord record) {
+    // Dữ liệu cũng có các bản ghi semester là ma trận PLO/PI và mô tả.
+    // Không xem chúng là kế hoạch đăng ký học phần.
+    final text = _normalize(record.text);
+    return record.type == 'semester' &&
+        record.semester != null &&
+        (text.contains('ma mh') || text.contains('ma hp')) &&
+        (text.contains('so tc') || text.contains('so tin chi'));
+  }
+
+  static bool _containsPhrase(String text, String phrase) =>
+      phrase.isNotEmpty && ' $text '.contains(' $phrase ');
+
+  List<RagRecord> _selectionEvidence(
+    String question,
+    List<RagRecord> candidates,
+    Set<int> cohorts,
+  ) {
+    final output = <RagRecord>[];
+    final semesters = RegExp(r'\b(?:hoc ky|hoc ki|hk|ky|ki)\s*(\d{1,2})\b')
+        .allMatches(question)
+        .map((match) => int.parse(match.group(1)!))
+        .toSet();
+
+    // Xử lý từng khóa độc lập để không lẫn căn cứ giữa các CTĐT.
+    for (final cohort in cohorts.toList()..sort()) {
+      final scoped = candidates.where((r) => r.cohort == cohort).toList();
+      final courses = scoped.where((r) => r.type == 'course').toList();
+      final byCode = courses.where((r) => r.courseCode != null &&
+          _containsPhrase(question, _normalize(r.courseCode!))).toList();
+      final byName = courses.where((r) {
+        final name = _normalize(r.courseName ?? '');
+        if (name.length < 5 || !_containsPhrase(question, name)) return false;
+        final programPhrase = _containsPhrase(question, 'nganh $name') ||
+            _containsPhrase(question, 'chuong trinh $name');
+        return !programPhrase || _containsPhrase(question, 'mon $name') ||
+            _containsPhrase(question, 'hoc phan $name');
+      }).toList();
+      // Tránh nhầm Cơ sở dữ liệu với Hệ quản trị cơ sở dữ liệu.
+      final named = byName.where((r) => !byName.any((other) =>
+          other.id != r.id &&
+          _normalize(other.courseName ?? '').length >
+              _normalize(r.courseName ?? '').length &&
+          _containsPhrase(_normalize(other.courseName ?? ''),
+              _normalize(r.courseName ?? ''))));
+      final matched = <String, RagRecord>{
+        for (final r in byCode) r.id: r,
+        for (final r in named) r.id: r,
+      }.values.toList();
+      final plans = scoped.where(_isTeachingPlan).toList();
+      final selected = <String, RagRecord>{};
+      void add(RagRecord record) => selected[record.id] = record;
+
+      // Có tên/mã môn rõ ràng: ưu tiên bản ghi môn và bảng kế hoạch
+      // có mã đó. Mã xuất hiện có thể là môn học trước của môn khác,
+      // nên giữ nguyên bảng để AI đọc đúng cột, không suy luận từ vị trí.
+      if (matched.isNotEmpty) {
+        for (final course in matched.take(3)) {
+          add(course);
+        }
+        final codes = matched.take(3).map((r) => _normalize(r.courseCode ?? ''))
+            .where((code) => code.isNotEmpty).toSet();
+        bool mentionsCourse(RagRecord r) => codes.any(
+            (code) => _containsPhrase(_normalize(r.text), code));
+        final relevantPlans = plans.where(mentionsCourse).toList();
+        relevantPlans.sort((a, b) {
+          final aRequested = semesters.contains(a.semester) ? 0 : 1;
+          final bRequested = semesters.contains(b.semester) ? 0 : 1;
+          final priority = aRequested.compareTo(bRequested);
+          return priority != 0 ? priority : a.semester!.compareTo(b.semester!);
+        });
+        for (final plan in relevantPlans.take(3)) {
+          add(plan);
+        }
+        // Bảng khối kiến thức có thể cung cấp loại môn và điều kiện.
+        // Chỉ đưa bảng chứa đúng mã; không tự gán bắt buộc/tự chọn.
+        for (final record in scoped.where((r) => r.type == 'information' &&
+            mentionsCourse(r) &&
+            (_normalize(r.text).contains('bat buoc') ||
+                _normalize(r.text).contains('tu chon') ||
+                _normalize(r.text).contains('tien quyet') ||
+                _normalize(r.text).contains('hoc phan truoc'))).take(2)) {
+          add(record);
+        }
+      } else if (semesters.isNotEmpty) {
+        // Tư vấn theo kỳ: chỉ lấy bảng kế hoạch đúng kỳ, không dùng PLO/PI
+        // làm danh sách đăng ký và không tự chọn môn ngoài bảng.
+        for (final plan in plans.where((r) => semesters.contains(r.semester))) {
+          add(plan);
+        }
+      }
+      output.addAll(selected.values);
+    }
+    return output;
+  }
+
   List<RagRecord> _structuredSearch(
     String question,
     String normalizedQuestion,
@@ -223,13 +334,11 @@ class RagService {
 
     if (semesters.isNotEmpty) {
       for (final semester in semesters) {
-        for (final record
-            in candidates
-                .where(
-                  (record) =>
-                      record.type == 'semester' && record.semester == semester,
-                )
-                .take(3)) {
+        final records = candidates.where((record) =>
+            record.type == 'semester' && record.semester == semester).toList();
+        final plans = records.where(_isTeachingPlan).toList();
+        // Giữ cách truy xuất cũ nếu chưa có bảng kế hoạch chuẩn.
+        for (final record in (plans.isEmpty ? records : plans).take(3)) {
           found[record.id] = record;
         }
       }

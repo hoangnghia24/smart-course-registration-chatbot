@@ -182,8 +182,8 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'clientRequestId': _i1.ParameterDescription(
               name: 'clientRequestId',
-              type: _i1.getType<String?>(),
-              nullable: true,
+              type: _i1.getType<String>(),
+              nullable: false,
             ),
           },
           call:

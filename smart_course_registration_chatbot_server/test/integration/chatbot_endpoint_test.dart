@@ -10,7 +10,7 @@ void main() {
     test('rejects blank and over-limit messages before calling AI', () async {
       var aiCalls = 0;
       final endpoint = ChatbotEndpoint(
-        answerGenerator: (session, message) async {
+        answerGenerator: (session, message, history) async {
           aiCalls++;
           return 'unused';
         },
@@ -18,7 +18,7 @@ void main() {
       final session = sessionBuilder.build();
 
       await expectLater(
-        endpoint.sendMessage(session, '   ', null, null),
+        endpoint.sendMessage(session, '   ', null, 'blank'),
         throwsA(
           isA<AppException>().having(
             (error) => error.code,
@@ -28,7 +28,7 @@ void main() {
         ),
       );
       await expectLater(
-        endpoint.sendMessage(session, 'a' * 2001, null, null),
+        endpoint.sendMessage(session, 'a' * 2001, null, 'over-limit'),
         throwsA(
           isA<AppException>().having(
             (error) => error.code,
@@ -60,7 +60,7 @@ void main() {
             )
             .build();
         final endpoint = ChatbotEndpoint(
-          answerGenerator: (session, message) async => 'Câu trả lời AI',
+          answerGenerator: (session, message, history) async => 'Câu trả lời AI',
         );
 
         final answer = await endpoint.sendMessage(
@@ -70,12 +70,25 @@ void main() {
           'request-1',
         );
 
-        expect(answer, 'Câu trả lời AI');
+        expect(answer.answer, 'Câu trả lời AI');
+        expect(answer.conversationId, greaterThan(0));
         final conversations = await ChatbotConversation.db.find(
           setupSession,
           where: (table) => table.studentId.equals(student.id!),
         );
         expect(conversations, hasLength(1));
+        expect(answer.conversationId, conversations.single.id);
+        final replay = await endpoint.sendMessage(
+          authenticatedSession, 'Tôi nên học môn nào?', null, 'request-1',
+        );
+        expect(replay.conversationId, answer.conversationId);
+        expect(replay.answer, answer.answer);
+        await expectLater(
+          endpoint.sendMessage(authenticatedSession, 'Câu khác', null, 'request-1'),
+          throwsA(isA<AppException>().having(
+            (error) => error.code, 'code', 'CHAT_REQUEST_CONFLICT',
+          )),
+        );
         expect(conversations.single.title, 'Tôi nên học môn nào?');
         expect(
           conversations.single.updatedAt,
@@ -113,16 +126,19 @@ void main() {
           )
           .build();
       var answerNumber = 0;
+      List<ChatbotMessage> receivedHistory = [];
       final endpoint = ChatbotEndpoint(
-        answerGenerator: (session, message) async =>
-            'Trả lời ${++answerNumber}',
+        answerGenerator: (session, message, history) async {
+          receivedHistory = history;
+          return 'Trả lời ${++answerNumber}';
+        },
       );
 
       await endpoint.sendMessage(
         authenticatedSession,
         'Tin nhắn đầu',
         null,
-        null,
+        'append-1',
       );
       final conversation = (await ChatbotConversation.db.find(
         setupSession,
@@ -133,7 +149,7 @@ void main() {
         authenticatedSession,
         'Tin nhắn tiếp theo',
         conversation.id,
-        null,
+        'append-2',
       );
 
       final updatedConversation = await ChatbotConversation.db.findById(
@@ -146,6 +162,8 @@ void main() {
       );
       expect(updatedConversation!.updatedAt.isBefore(firstUpdatedAt), isFalse);
       expect(messages, hasLength(4));
+      expect(receivedHistory.map((m) => m.content).toList(),
+          ['Tin nhắn đầu', 'Trả lời 1']);
     });
 
     test('does not call AI for another student conversation', () async {
@@ -171,7 +189,7 @@ void main() {
       );
       var aiCalls = 0;
       final endpoint = ChatbotEndpoint(
-        answerGenerator: (session, message) async {
+        answerGenerator: (session, message, history) async {
           aiCalls++;
           return 'unused';
         },
@@ -190,7 +208,7 @@ void main() {
           otherStudentSession,
           'Đọc hội thoại',
           conversation.id,
-          null,
+          'other-1',
         ),
         throwsA(
           isA<AppException>().having(
@@ -221,7 +239,7 @@ void main() {
           )
           .build();
       final endpoint = ChatbotEndpoint(
-        answerGenerator: (session, message) async => throw AppException(
+        answerGenerator: (session, message, history) async => throw AppException(
           code: 'AI_TEST_FAILURE',
           message: 'AI failed',
         ),
@@ -232,7 +250,7 @@ void main() {
           authenticatedSession,
           'Tin nhắn không được lưu',
           null,
-          null,
+          'failure-1',
         ),
         throwsA(
           isA<AppException>().having(
@@ -245,6 +263,7 @@ void main() {
 
       expect(await ChatbotConversation.db.find(setupSession), isEmpty);
       expect(await ChatbotMessage.db.find(setupSession), isEmpty);
+      expect(await ChatbotRequest.db.find(setupSession), isEmpty);
     });
   });
 }
