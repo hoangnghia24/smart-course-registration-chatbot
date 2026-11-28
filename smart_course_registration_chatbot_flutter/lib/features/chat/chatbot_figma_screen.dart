@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/shared_app_header.dart';
+import 'chatbot_repository_scope.dart';
+import 'data/chatbot_repository.dart';
+import 'domain/chatbot_message.dart';
+import 'domain/chatbot_related_course.dart';
+import 'presentation/chatbot_controller.dart';
+import 'presentation/chatbot_state.dart';
 
 /// Các trạng thái CHỈ để kiểm tra UI tuần 5.
 /// Không phản ánh kết nối mạng hoặc phản hồi AI thực tế.
@@ -14,11 +20,24 @@ enum ChatbotPreviewState {
   offline,
 }
 
-/// Màn hình được dựng lại từ SVG Figma 390 x 844 của HAN.
-/// Toàn bộ nội dung hội thoại/lớp học hiện tại là dữ liệu minh họa.
-/// Không thực hiện API, đăng ký học phần hoặc xác thực dữ liệu học tập.
+/// Giao diện Figma 390×844, giữ nguyên bản xem trước khi không được inject.
+/// Khi nhận Controller/Repository/Scope, hiển thị dữ liệu hội thoại động.
+/// Không đăng ký học phần, không tự suy đoán dữ liệu học vụ.
 class ChatbotFigmaScreen extends StatefulWidget {
-  const ChatbotFigmaScreen({super.key});
+  const ChatbotFigmaScreen({
+    super.key,
+    this.controller,
+    this.repository,
+    this.initialConversationId,
+    this.isSimulatedSource = true,
+  });
+
+  final ChatbotController? controller;
+  final ChatbotRepository? repository;
+  final String? initialConversationId;
+
+  /// Chỉ đặt false khi nguồn Backend chính thức đã được tích hợp và kiểm chứng.
+  final bool isSimulatedSource;
 
   @override
   State<ChatbotFigmaScreen> createState() => _ChatbotFigmaScreenState();
@@ -38,8 +57,91 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   ChatbotPreviewState _previewState = ChatbotPreviewState.initial;
   String? _lastQuestion;
 
+  ChatbotController? _controller;
+  bool _ownsController = false;
+  String? _lastVisibleMessageId;
+  String? _lastVisibleConversationId;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller != null) {
+      _attachController(widget.controller!, ownsController: false);
+    } else if (widget.repository != null) {
+      _attachController(
+        ChatbotController(
+          repository: widget.repository!,
+          initialConversationId: widget.initialConversationId,
+        ),
+        ownsController: true,
+      );
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller != null ||
+        widget.controller != null ||
+        widget.repository != null) {
+      return;
+    }
+    final repository = ChatbotRepositoryScope.maybeOf(context);
+    if (repository != null) {
+      _attachController(
+        ChatbotController(
+          repository: repository,
+          initialConversationId: widget.initialConversationId,
+        ),
+        ownsController: true,
+      );
+    }
+  }
+
+  void _attachController(
+    ChatbotController controller, {
+    required bool ownsController,
+  }) {
+    _controller = controller;
+    _ownsController = ownsController;
+    controller.addListener(_onControllerUpdated);
+    // Controller có thể notify đồng bộ. Không initialize trong build/dependencies.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(_controller, controller)) {
+        controller.initialize();
+      }
+    });
+  }
+
+  void _onControllerUpdated() {
+    final state = _controller?.state;
+    if (state == null) return;
+    final conversationId = state.activeConversationId;
+    final lastId = state.messages.isEmpty ? null : state.messages.last.id;
+    final shouldScroll = lastId != null &&
+        (lastId != _lastVisibleMessageId ||
+            conversationId != _lastVisibleConversationId) &&
+        !state.isLoadingOlderMessages;
+    _lastVisibleMessageId = lastId;
+    _lastVisibleConversationId = conversationId;
+    if (shouldScroll) _scrollToBottomAfterFrame();
+  }
+
+  void _scrollToBottomAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   void dispose() {
+    _controller?.removeListener(_onControllerUpdated);
+    if (_ownsController) _controller?.dispose();
     _questionController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -56,21 +158,25 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   void _sendQuestion() {
     final question = _questionController.text.trim();
     if (question.isEmpty) return;
+    final controller = _controller;
+    if (controller != null) {
+      if (controller.state.isSending ||
+          controller.state.messagesStatus == ChatbotRequestStatus.loading) {
+        return;
+      }
+      _questionController.clear();
+      controller.sendMessage(question);
+      _scrollToBottomAfterFrame();
+      return;
+    }
+
+    // Chế độ Preview Figma tuần 5: giữ nguyên hành vi 11 widget tests cũ.
     setState(() {
       _lastQuestion = question;
-      // Chưa có API AI: tuyệt đối không sinh câu trả lời học vụ giả.
       _previewState = ChatbotPreviewState.noEvidence;
       _questionController.clear();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    _scrollToBottomAfterFrame();
   }
 
   void _showNonOperationalNotice(String message) {
@@ -86,6 +192,13 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller != null) {
+      return AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) => _buildConnectedScaffold(controller),
+      );
+    }
     return Scaffold(
       backgroundColor: _pageBackground,
       resizeToAvoidBottomInset: true,
@@ -156,6 +269,541 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
           ],
         ),
       ),
+    );
+  }
+
+
+  Widget _buildConnectedScaffold(ChatbotController controller) {
+    final state = controller.state;
+    return Scaffold(
+      backgroundColor: _pageBackground,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildConnectedHeader(controller),
+            Expanded(child: _buildConnectedConversation(state, controller)),
+            _buildComposer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectedHeader(ChatbotController controller) {
+    return SharedAppHeader.assistant(
+      title: 'Trợ lý AI Đăng ký',
+      status: widget.isSimulatedSource
+          ? 'Mô phỏng · Chưa kết nối Backend AI'
+          : 'Trợ lý học vụ',
+      avatar: const _StarAvatar(size: 44),
+      leadingKey: const Key('chatbot_back_button'),
+      onLeading: () {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          _showNonOperationalNotice('Không có màn hình trước để quay lại.');
+        }
+      },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            key: const Key('chatbot_new_conversation_button'),
+            tooltip: 'Tạo hội thoại mới',
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              controller.createNewConversation();
+              _questionController.clear();
+              _scrollToBottomAfterFrame();
+            },
+            icon: const Icon(Icons.add_comment_outlined, color: _darkText),
+          ),
+          IconButton(
+            key: const Key('chatbot_conversations_button'),
+            tooltip: 'Lịch sử hội thoại',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _showConversationSheet(controller),
+            icon: const Icon(Icons.history_rounded, color: _darkText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectedConversation(
+    ChatbotState state,
+    ChatbotController controller,
+  ) {
+    return ListView(
+      key: const Key('chatbot_conversation_list'),
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(8, 14, 20, 20),
+      children: [
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9EDF3),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: const Text(
+              'Hội thoại',
+              style: TextStyle(
+                color: _muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (widget.isSimulatedSource) ...[
+          const Padding(
+            padding: EdgeInsets.only(left: 36, bottom: 12),
+            child: Text(
+              'DỮ LIỆU HỘI THOẠI MÔ PHỎNG · KHÔNG PHẢI TƯ VẤN HỌC VỤ CHÍNH THỨC',
+              key: Key('chatbot_simulation_banner'),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: _muted,
+              ),
+            ),
+          ),
+        ],
+        if (state.messagesStatus == ChatbotRequestStatus.loading) ...[
+          const Center(
+            key: Key('chatbot_messages_loading'),
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ],
+        if (state.messagesStatus == ChatbotRequestStatus.error) ...[
+          _buildInlineError(
+            key: const Key('chatbot_messages_error'),
+            message: state.messagesError?.message ??
+                'Không thể tải lịch sử hội thoại.',
+            retryKey: const Key('chatbot_messages_retry_button'),
+            onRetry: controller.retryMessages,
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (state.messagesStatus != ChatbotRequestStatus.loading &&
+            state.messages.isEmpty) ...[
+          _buildEmptyConnectedState(),
+        ],
+        if (state.isLoadingOlderMessages) ...[
+          const Center(
+            key: Key('chatbot_older_messages_loading'),
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ] else if (state.olderMessagesError != null) ...[
+          _buildInlineError(
+            message: state.olderMessagesError!.message,
+            retryKey: const Key('chatbot_older_messages_retry_button'),
+            onRetry: controller.retryOlderMessages,
+          ),
+        ] else if (state.canLoadOlderMessages) ...[
+          Center(
+            child: OutlinedButton.icon(
+              key: const Key('chatbot_load_older_messages_button'),
+              onPressed: controller.loadOlderMessages,
+              icon: const Icon(Icons.expand_less_rounded),
+              label: const Text('Tải tin nhắn cũ hơn'),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        for (final message in state.messages) ...[
+          _buildConnectedMessage(message),
+          const SizedBox(height: 12),
+        ],
+        if (state.isSending) ...[
+          _assistantBubble(
+            child: const Row(
+              key: Key('chatbot_sending_indicator'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 10),
+                Flexible(child: Text('Đang phản hồi...')),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (state.sendError != null) ...[
+          _buildInlineError(
+            key: const Key('chatbot_send_error'),
+            message: state.sendError!.message,
+            failedMessage: state.failedMessage,
+            retryKey: state.sendError!.isRetryable
+                ? const Key('chatbot_retry_send_button')
+                : null,
+            onRetry: state.sendError!.isRetryable
+                ? controller.retrySendMessage
+                : null,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildEmptyConnectedState() {
+    return Column(
+      key: const Key('chatbot_empty_state'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _assistantBubble(
+          child: const Text(
+            'Xin chào! Bạn có thể đặt câu hỏi về học phần. '
+            'Thông tin cần được xác minh với dữ liệu học vụ chính thức.',
+            style: TextStyle(fontSize: 14, height: 1.45, color: _darkText),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _buildSuggestion(
+          icon: Icons.auto_awesome,
+          text: 'Gợi ý môn chuyên ngành cho mình',
+        ),
+        const SizedBox(height: 8),
+        _buildSuggestion(
+          icon: Icons.help_outline_rounded,
+          text: 'Tại sao mình không đăng ký được AI?',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConnectedMessage(ChatbotMessage message) {
+    if (message.isFromUser) {
+      return _buildUserMessage(message.content);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _assistantBubble(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message.content,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.45,
+                  color: _darkText,
+                ),
+              ),
+              if (message.evidenceStatus == ChatbotEvidenceStatus.none) ...[
+                const SizedBox(height: 9),
+                const Text(
+                  'Chưa có căn cứ học vụ xác thực',
+                  style: TextStyle(fontSize: 12, color: _muted),
+                ),
+              ],
+              if (message.evidenceStatus == ChatbotEvidenceStatus.partial) ...[
+                const SizedBox(height: 9),
+                const Text(
+                  'Căn cứ một phần · Cần kiểm tra lại',
+                  style: TextStyle(fontSize: 12, color: _muted),
+                ),
+              ],
+              if (message.sources.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  key: Key('chatbot_message_sources_${message.id}'),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDF5FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Nguồn tham khảo',
+                        style: TextStyle(
+                          color: Color(0xFF075C9E),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      for (final source in message.sources) ...[
+                        const SizedBox(height: 5),
+                        Text(source.title),
+                        if (source.reference != null)
+                          Text(
+                            source.reference!,
+                            style: const TextStyle(fontSize: 12, color: _muted),
+                          ),
+                        if (source.excerpt != null)
+                          Text(
+                            source.excerpt!,
+                            style: const TextStyle(fontSize: 12, color: _muted),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        for (final course in message.relatedCourses) ...[
+          const SizedBox(height: 9),
+          _buildRelatedCourseCard(course),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRelatedCourseCard(ChatbotRelatedCourse course) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 36),
+      child: Container(
+        key: Key('chatbot_related_course_${course.courseCode}'),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: const Color(0xFFE0E6EF)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              color: const Color(0xFFEDF5FF),
+              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      course.courseName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        color: Color(0xFF075C9E),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${course.credits} TC',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF075C9E),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mã học phần: ${course.courseCode}',
+                    style: const TextStyle(fontSize: 13, color: _darkText),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    course.reason,
+                    style: const TextStyle(fontSize: 13, color: _muted),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Tra cứu thông tin chi tiết tại màn hình F03. '
+                    'Chatbot không thực hiện đăng ký học phần.',
+                    style: TextStyle(fontSize: 12, color: _muted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInlineError({
+    Key? key,
+    required String message,
+    String? failedMessage,
+    Key? retryKey,
+    Future<void> Function()? onRetry,
+  }) {
+    return Container(
+      key: key,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF2F1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message, style: const TextStyle(color: Color(0xFF922D27))),
+          if (failedMessage != null) ...[
+            const SizedBox(height: 6),
+            Text('Câu hỏi chưa gửi: $failedMessage'),
+          ],
+          if (onRetry != null) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              key: retryKey,
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showConversationSheet(ChatbotController controller) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: SizedBox(
+          key: const Key('chatbot_conversations_sheet'),
+          height: MediaQuery.sizeOf(sheetContext).height * 0.68,
+          child: AnimatedBuilder(
+            animation: controller,
+            builder: (context, _) => _buildConversationSheetContent(
+              sheetContext,
+              controller,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConversationSheetContent(
+    BuildContext sheetContext,
+    ChatbotController controller,
+  ) {
+    final state = controller.state;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 8, 12),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Lịch sử hội thoại',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Làm mới hội thoại',
+                onPressed: controller.retryConversations,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+          ),
+        ),
+        if (state.conversationsStatus == ChatbotRequestStatus.loading) ...[
+          const Center(
+            key: Key('chatbot_conversations_loading'),
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ] else if (state.conversationsStatus == ChatbotRequestStatus.error) ...[
+          _buildInlineError(
+            message: state.conversationsError?.message ??
+                'Không thể tải lịch sử hội thoại.',
+            retryKey: const Key('chatbot_conversations_retry_button'),
+            onRetry: controller.retryConversations,
+          ),
+        ] else if (state.isConversationListEmpty) ...[
+          const Center(
+            key: Key('chatbot_conversations_empty'),
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Chưa có lịch sử hội thoại.'),
+            ),
+          ),
+        ],
+        if (state.deleteError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              state.deleteError!.message,
+              style: const TextStyle(color: Color(0xFF922D27)),
+            ),
+          ),
+        Expanded(
+          child: ListView(
+            children: [
+              for (final conversation in state.conversations)
+                ListTile(
+                  key: Key('chatbot_conversation_item_${conversation.id}'),
+                  selected: state.activeConversationId == conversation.id,
+                  title: Text(
+                    conversation.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: conversation.lastMessagePreview == null
+                      ? null
+                      : Text(
+                          conversation.lastMessagePreview!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    controller.selectConversation(conversation.id);
+                    _questionController.clear();
+                  },
+                  trailing: state.deletingConversationIds
+                          .contains(conversation.id)
+                      ? const SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : IconButton(
+                          key: Key('chatbot_delete_conversation_${conversation.id}'),
+                          tooltip: 'Xóa hội thoại',
+                          onPressed: () =>
+                              controller.deleteConversation(conversation.id),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
+                ),
+              if (state.isLoadingMoreConversations)
+                const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              else if (state.canLoadMoreConversations)
+                Center(
+                  child: OutlinedButton(
+                    key: const Key('chatbot_load_more_conversations_button'),
+                    onPressed: controller.loadMoreConversations,
+                    child: const Text('Tải thêm hội thoại'),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -529,6 +1177,9 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
   }
 
   Widget _buildComposer() {
+    final state = _controller?.state;
+    final isBusy = state?.isSending == true ||
+        state?.messagesStatus == ChatbotRequestStatus.loading;
     return Container(
       padding: const EdgeInsets.fromLTRB(15, 12, 18, 12),
       decoration: const BoxDecoration(
@@ -581,8 +1232,17 @@ class _ChatbotFigmaScreenState extends State<ChatbotFigmaScreen> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
-              onPressed: _sendQuestion,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 26),
+              onPressed: isBusy ? null : _sendQuestion,
+              icon: state?.isSending == true
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.arrow_forward_rounded, size: 26),
             ),
           ),
         ],
